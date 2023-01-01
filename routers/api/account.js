@@ -1,0 +1,1067 @@
+const a = require('express').Router();
+const { randomUUID, createHmac } = require('crypto');
+const cryptojs = require('crypto-js');
+const multer = require('multer');
+const nodemailer = require('nodemailer');
+const fetch = require('node-fetch');
+const QRCode = require('qrcode');
+const authenticator = require('authenticator');
+const twemoji = require('twemoji');
+const path = require('path');
+const fs = require('fs');
+const sharp = require('sharp');
+const B2 = require('backblaze-b2');
+
+const user = require('../../db/account/user');
+const sessions = require('../../db/account/session');
+const verify_email = require('../../db/account/verify_email');
+const dbMisc = require('../../db/account/misc');
+const badge = require('../../db/account/badge');
+const tokens = require('../../db/account/tokens');
+const misc = require('../../db/account/misc');
+const short_url = require('../../db/account/url');
+const notification = require('../../db/account/notification');
+const paste = require('../../db/account/paste');
+const avatarCache = require('../api/avatarCache');
+const authCode = require('../api/authCode');
+
+const b2 = new B2({
+    applicationKeyId: process.env.C_API_KEYID,
+    applicationKey: process.env.C_API_KEY,
+    retry: {
+        retries: 3
+    }
+});
+
+async function GetBucket() {
+    try {
+        await b2.authorize(); // must authorize first (authorization lasts 24 hrs)
+        let response = await b2.getBucket({ bucketName: 'ferrets' });
+        // console.log(response.data);
+    } catch (err) {
+      console.log('Error getting bucket:', err);
+    }
+};
+
+GetBucket();
+
+const Filter = function (req, file, cb) {
+    // Accept images only
+    if (!file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/)) {
+        req.fileValidationError = 'Only image files are allowed!';
+        return cb(new Error('Only image files are allowed!'), false);
+    }
+    cb(null, true);
+};
+
+const Filter2 = function (req, file, cb) {
+    // Accept images only
+    if (!file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF|mp4|MP4)$/)) {
+        req.fileValidationError = 'Only image files are allowed!';
+        return cb(new Error('Only image files are allowed!'), false);
+    }
+    cb(null, true);
+};
+
+const upload = multer({ limits: { fileSize: 1920 * 1080 * 5 }, fileFilter: Filter });
+const upload2 = multer({ limits: { fileSize: 1280 * 720 * 5 }, fileFilter: Filter });
+
+function salt(g, s) {
+    const hash = createHmac('sha256', s).update(g).digest('hex');
+
+    return hash
+};
+
+function encrypt(g, s = process.env.SALT) {
+    return cryptojs.AES.encrypt(g, s).toString();
+}
+
+function decrypt(g, s = process.env.SALT) {
+    return cryptojs.AES.decrypt(g, s).toString(cryptojs.enc.Utf8);
+}
+
+async function auth(session, staff) {
+    let a = await (await fetch(session)).json();
+    let contine = true;
+    let error = null;
+    if (a.OK && a.account) a = JSON.parse(decrypt(a.account));
+    if (a.status) a = null;
+    
+    if (!a) { error = `You must be logged in`; }
+    if (a && !a.verified) { error = `Account is not verified`; }
+    if (a && a.blocked) { error = `Account is either blocked or muted and cannot access this endpoint`; }
+
+    if (a && !a.staff && staff) error = `This is a staff endpoint`;
+    if (error) contine = false;
+
+    return { OK: contine, error };
+};
+// console.log(twemoji.convert.toCodePoint(""));
+
+a.get('/v1/auth', async function (req, res) {
+    let { session } = req.cookies;
+    if (!session) session = req.query.session;
+
+    if (!session) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication` });
+    let s = await user.findOne({ session }, { password: 0, createdIP: 0, last_login: 0, __v: 0, recEmail: 0 }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+
+    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication` });
+    // if (s.blocked) return res.status(403).json({ OK: false, status: 403, error: `User is blocked` });
+
+    let links = await short_url.find({ author: s._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+
+    s.apiKey = decrypt(s.apiKey);
+    s.bio = decrypt(s.bio);
+    s.url = decrypt(s.url);
+    s.location = decrypt(s.location);
+
+    if (links && links.length < 1) links = null;
+    if (links && links.length > 0) {
+        links.forEach((elm) => { elm.link = decrypt(elm.link); elm.title = decrypt(elm.title); elm.subtitle = decrypt(elm.subtitle); elm.thumbnail = decrypt(elm.thumbnail) });
+
+        links = JSON.stringify(links);
+    }
+
+    let result = { OK: true, status: 200, account: encrypt(JSON.stringify(s)), links: encrypt(links) };
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(result, null, 2.5));
+});
+
+a.get('/v1/uuid', async function (req, res) {
+    let { session } = req.cookies;
+    let { name } = req.query;
+
+    let acc = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0 }).lean();
+    if (!acc) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
+
+    if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0 }).lean();
+
+    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+
+    let result = { OK: true, status: 200, name: s.name, uuid: s.uuid };
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(result, null, 2.5));
+});
+
+a.get('/v1/account', async function (req, res) {
+    let { session } = req.cookies;
+    let { name } = req.query;
+
+    let acc = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0 }).lean();
+    if (!acc) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
+
+    if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0 }).lean();
+
+    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+
+    s.bio = decrypt(s.bio);
+    s.url = decrypt(s.url);
+
+    s.inactive = false;
+    if (Date.now() - 2.234e+10 > s.last_login) s.inactive = true;
+
+    s.last_login = encrypt(s.last_login);
+
+    let result = { OK: true, status: 200, account: s };
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(result, null, 2.5));
+});
+
+a.post('/v1/register', async function (req, res) {
+    try {
+        let { session } = req.cookies;
+        let { email_VR, password_VR, confpassword_VR, TOS_VR, Username_VR } = req.body;
+    
+        if (session) return res.status(403).json({ OK: false, status: 403, error: `You are already logged in!` });
+        if (!email_VR || !password_VR || !confpassword_VR) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+        if (!TOS_VR) return res.status(403).json({ OK: false, status: 403, error: `Please confirm that you read our ToS before joining` });
+        if (password_VR !== confpassword_VR) return res.status(403).json({ OK: false, status: 403, error: `Password must match.` });
+    
+        let u = await user.find({  }, { email: 1 }).lean();
+        u = u.map((h) => { if (decrypt(h.email) == email_VR.toLowerCase()) return h })[0];
+        if (u) return res.status(403).json({ OK: false, status: 403, error: `E-Mail already used before` });
+    
+        session = randomUUID();
+        let uuid = randomUUID();
+        let api_key = randomUUID();
+        let username = Username_VR;
+    
+        let confT = Math.random().toString(32).substring(4).toUpperCase();
+        let filter = await dbMisc.findOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f" }, { reserved: 1, blocked: 1, _id: 0 }).lean();
+        
+        let reserved = false;
+        let blockedU = false;
+        filter.reserved.forEach(elm => {
+            if (Username_VR.toLowerCase() == elm.name.toLowerCase()) reserved = true;
+        });
+        filter.blocked.forEach(elm => {
+            if (Username_VR.toLowerCase() == elm.toLowerCase()) blockedU = true;
+        });
+    
+        if (reserved) return res.status(403).json({ OK: false, status: 403, error: `Username is reserved. Contact support to continue` });
+        if (blockedU) return res.status(403).json({ OK: false, status: 403, error: `Username is blocked` });
+        let checkname = await user.findOne({ nameToFind: Username_VR.toUpperCase(), hidden: false }, { uuid: 1 }).lean();
+        if (checkname) return res.status(403).json({ OK: false, status: 403, error: `Username is already taken` });
+    
+        await new user({
+            email: encrypt(email_VR.toLowerCase()),
+            name: username,
+            displayName: username,
+            uuid,
+            password: encrypt(password_VR),
+            pfp: "https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png",
+            pfp_id: "4_zd5afb20446dd61128b590419_f1192ca08e2cc1c4e_d20221230_m043305_c004_v0402014_t0006_u01672374785939",
+            banner: "",
+            banner_id: "",
+            recEmail: "",
+            session,
+            apiKey: encrypt(api_key),
+            bio: "",
+            url: "",
+            location: "",
+            reason: "",
+            linklimit: "25",
+            links: [],
+            socials: [],
+            nameHistory: [{ username, date: Date.now(), uuid: randomUUID() }],
+            views: [],
+            verified: false,
+            vrverified: false,
+            ogname: false,
+            pro: false,
+            blocked: false,
+            pronouns: null,
+            staff: false,
+            hidden: false,
+            nameToFind: username.toUpperCase(),
+            createdIP: encrypt(req.headers['x-forwarded-for']),
+            createdAt: Date.now(),
+            last_login: Date.now(),
+        }).save();
+        await new sessions({
+            uuid,
+            sessions: [{ token: session, date: Date.now(), ip: encrypt(req.headers['x-forwarded-for']) }],
+            keys: [{ key: api_key, date: Date.now(), ip: encrypt(req.headers['x-forwarded-for']) }]
+        }).save();
+        await new verify_email({
+            uuid,
+            email: encrypt(email_VR.toLowerCase()),
+            token: confT,
+            used: false,
+            valid: true,
+            date: Date.now()
+        }).save();
+    
+        let transporter = nodemailer.createTransport({
+            host: "webserver4.pebblehost.com",
+            port: 465,
+            secure: true,
+            auth: {
+                user: "no-reply@ferret.page",
+                pass: `${process.env.PASSWORD}`,
+            },
+        });
+    
+        let msg = {
+            from: '"no-reply@ferret.page" <no-reply@ferret.page>',
+            to: `${email_VR.toLowerCase()}`,
+            subject: "Verify User Account",
+            html: `<html><h4>Welcome to Ferret!</h4></br><h3>Here is your verification code: ${confT}</h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${uuid}?code=${confT}</a></p></html>`, // html body
+        };
+    
+        const info = await transporter.sendMail(msg);
+        res.cookie('session', session);
+        res.json({ OK: true, status: 200 });
+    } catch (e) {
+        console.log(e);
+        res.status(403).json({ OK: false, status: 403, error: e });
+    };
+});
+
+a.post('/v1/signin', async function (req, res) {
+    let { session } = req.cookies;
+    let { email_VR, password_VR, TFA_VR, expire_VR, code_VR } = req.body;
+
+    // if (session) return res.status(403).json({ OK: false, status: 403, error: `You are already logged in!` });
+    if (!email_VR || !password_VR) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+    if (!code_VR) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
+    if (code_VR !== authCode[code_VR]) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
+
+    let uC = await user.find({  }, { email: 1, password: 1, uuid: 1, TFA: 1, google_backup: 1, blocked: 1, flag: 1, name: 1, memorialize: 1 }).lean();
+    let u = null;
+    // u = u.map((h) => { if (decrypt(h.email) == email_VR.toLowerCase()) { return h }; });
+    uC.forEach(elm => {
+        if (elm && decrypt(elm.email) == email_VR.toLowerCase()) u = elm;
+    });
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Account does not exist with that E-Mail` });
+    if (password_VR !== decrypt(u.password)) return res.status(403).json({ OK: false, status: 403, error: `Incorrect Password` });
+    if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `@${u.name} is currently blocked from signing in` });
+    if (u.memorialize) return res.status(403).json({ OK: false, status: 403, error: `@${u.name} is currently blocked from signing in` });
+    if (!TFA_VR && u.TFA) return res.status(403).json({ OK: false, status: 403, error: `Incorrect 2FA Code` });
+    if (u.TFA) {
+        let verify = authenticator.verifyToken(decrypt(u.google_backup), TFA_VR);
+        if (!verify) return res.status(403).json({ OK: false, status: 403, error: `Incorrect 2FA Code` });
+    };
+
+    session = randomUUID();
+
+    await sessions.updateOne({ uuid: u.uuid }, { $push: { sessions: [{ token: session, date: Date.now(), ip: encrypt(req.headers['x-forwarded-for']) }] } });
+    await user.updateOne({ uuid: u.uuid }, { $set: { session, last_login: Date.now() } });
+
+    if (expire_VR) {
+        res.cookie('session', session, { maxAge: 2.592e+8 });
+        res.json({ OK: true, status: 200 });
+        return
+    };
+    res.cookie('session', session, { maxAge: 2.678e+9 });
+    delete authCode[code_VR];
+    res.json({ OK: true, status: 200 });
+});
+
+a.post('/v1/verify/:uid', async function (req, res) {
+    let { session } = req.cookies;
+    let { verifcode } = req.body;
+    if (!verifcode) return res.status(403).json({ OK: false, error: `Enter code to continue` });
+
+    try {
+        let u = await user.findOne({ session }).lean();
+        let c = verifcode.toUpperCase();
+        if (u.verified) return res.status(403).json({ OK: false, error: `Account is already verified` });
+        let token = Math.random().toString(32).substring(8);
+        let vv = await verify_email.findOne({ uuid: u.uuid, token: c, used: false }).lean();
+        if (!vv) return res.status(403).json({ OK: false, error: `Invalid code` });
+        if (vv.token.toUpperCase() !== c) return res.status(403).json({ OK: false, error: `Invalid code` });
+        let nDate = Date.now();
+        if (Date.now() > parseInt(vv.date)+1.728e+8) {
+            let confT = Math.random().toString(32).substring(4).toUpperCase();
+            await new verify_email({
+                uuid: vv.uuid,
+                email: vv.email,
+                token: confT,
+                used: false,
+                valid: true,
+                date: Date.now()
+            }).save();
+        
+            let transporter = nodemailer.createTransport({
+                host: "webserver4.pebblehost.com",
+                port: 465,
+                secure: true,
+                auth: {
+                    user: "no-reply@had.contact",
+                    pass: `${process.env.PASSWORD}`,
+                },
+            });
+        
+            let msg = {
+                from: '"no-reply@had.contact" <no-reply@had.contact>',
+                to: `${vv.email.toLowerCase()}`,
+                subject: "Verify User Account",
+                html: `<html><h4>Here's your new code!</h4></br><h3>Here is your verification code: ${confT}</h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}</a></p></html>`, // html body
+            };
+            await verify_email.deleteOne({ uuid: u.uuid, token: c, used: false });
+            const info = await transporter.sendMail(msg);
+            res.status(404).json({ error: `Code Expired` });
+            return
+        };
+        await verify_email.updateOne({ uuid: u.uuid, used: false }, { $set: { used: true } });
+        await user.updateOne({ session }, { $set: { verified: true, flag: 40 } });
+
+        if (!req.query.json) return res.redirect('/dashboard');
+        res.json({ OK: true, status: 200, text: "Verified user" });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
+});
+
+a.get('/verify/no/:uid', async function (req, res) {
+    let verifcode = req.query.code;
+
+    if (!verifcode) return res.sendStatus(404);
+    let c = verifcode.toUpperCase();
+    user.findOne({ uuid: req.params.uid }, async function (e, r) {
+        if (!r) return res.sendStatus(403);
+        if (req.params.uid == r.uuid) {
+            verify_email.findOne({ uuid: r.uuid, used: false }, async function (err, re) {
+                if (!re) return res.status(404).json({ error: `Could not find code` });
+                if (re.token == c) {
+                    await verify_email.findOneAndRemove({ uuid: r.uuid });
+                    await sessions.findOneAndRemove({ uuid: r.uuid });
+                    await user.findOneAndRemove({ uuid: r.uuid });
+                    res.clearCookie('session');
+                    res.redirect('/');
+                } else {
+                    res.status(404).json({ error: `Invalid code` });
+                };
+            });
+        } else {
+            res.sendStatus(404);
+        }
+    });
+});
+
+a.post('/v1/account/edit', async function (req, res) {
+    let { session } = req.cookies;
+    let { display_vr, name_vr, bio_vr, location_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    if (!name_vr) return res.status(403).json({ OK: false, status: 403, error: `You must have a username` });
+
+    let acc = await user.findOne({ session }).lean();
+    let char = /^[a-zA-Z0-9_]+$/;
+
+    if (!display_vr) {
+        await user.updateOne({ session }, { $set: { displayName: acc.name } });
+        res.json({ OK: true, status: 200, status: "Set display name to: None" });
+        return
+    };
+
+    if (display_vr) {
+        if (display_vr.length > 28) return res.status(403).json({ OK: false, status: 403, error: `Invalid length: ${display_vr.length}/28` });
+        // if (!char.test(display_vr)) return res.status(403).json({ OK: false, status: 403, error: `Invalid Display Name` });
+        if (acc.ogname) {
+            if (!display_vr.includes(' ') && display_vr.toUpperCase() !== acc.nameToFind) return res.status(403).json({ OK: false, status: 403, error: `Display name must include username` });
+
+            let splitName = display_vr.split(' ');
+            let isname = false;
+            splitName.forEach(elm => {
+                if (elm.toUpperCase() == acc.nameToFind) isname = true;
+            });
+
+            if (!isname) return res.status(403).json({ OK: false, status: 403, error: `Display name must include username` });
+        }
+
+        await user.updateOne({ session }, { $set: { displayName: display_vr } });
+    };
+
+    if (name_vr && acc.nameToFind !== name_vr.toUpperCase()) {
+        name_vr = encodeURIComponent(name_vr);
+
+        if (!char.test(name_vr)) return res.status(403).json({ OK: false, status: 403, error: `Invalid regex form` });
+
+        if (name_vr.length < 2) return res.status(400).json({ OK: false, status: 400, error: `Username must be greater than 2 characters` });
+        if (name_vr.length > 15) return res.status(400).json({ OK: false, status: 400, error: `Username must be less than 16 characters` });
+
+        let filter = await dbMisc.findOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f" }, { reserved: 1, blocked: 1, _id: 0 }).lean();
+        
+        let reserved = false;
+        let blockedU = false;
+        filter.reserved.forEach(elm => {
+            if (name_vr.toLowerCase() == elm.name.toLowerCase()) reserved = true;
+        });
+        filter.blocked.forEach(elm => {
+            if (name_vr.toLowerCase() == elm.toLowerCase()) blockedU = true;
+        });
+
+        if (reserved) return res.status(403).json({ OK: false, status: 403, error: `Username is reserved. Contact support to continue` });
+        if (blockedU) return res.status(403).json({ OK: false, status: 403, error: `Username is blocked` });
+        let checkname = await user.findOne({ nameToFind: name_vr.toUpperCase(), hidden: false }, { uuid: 1 }).lean();
+        if (checkname) return res.status(403).json({ OK: false, status: 403, error: `Username is already taken` });
+
+        if (acc.nameHistory.length > 0 && parseInt(acc.nameHistory[acc.nameHistory.length - 1].date)+8.64e+7 > Date.now()) return res.status(403).json({ OK: false, status: 403, error: `You can only change your username once every 24 hours` });
+        await user.updateOne({ session }, { $set: { name: name_vr, nameToFind: name_vr.toUpperCase() } });
+        await user.updateOne({ session }, { $push: { nameHistory: [{ name: name_vr, date: Date.now(), hidden: false, uuid: randomUUID() }] } });
+    };
+
+    if (bio_vr && bio_vr.length > 95) return res.status(400).json({ OK: false, status: 400, error: `Bio must be less than 96 characters` });
+
+    await user.updateOne({ session }, { $set: { bio: encrypt(bio_vr) } });
+
+    if (location_vr.length > 57) return res.status(400).json({ OK: false, status: 400, error: `Location must be less than 58 characters` });
+
+    if (location_vr.length < 1) {
+        location_vr = "";
+    }
+    await user.updateOne({ session }, { $set: { location: encrypt(location_vr) } });
+
+    res.json({ OK: true, status: 200, status: `Updated profile` });
+});
+
+a.post('/v1/account/edit/avatar', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+        var up = upload.single('pfp');
+
+        let u = await user.findOne({ session }).lean();
+
+        up(req, res, async function (e) {
+            if (e) console.log(e);
+            if (e) return res.status(500).json({ OK: false, error: `${e}` });
+            if (!e) {
+                let file = null;
+                let fileExtension = null;
+                let upl = null;
+                let authT = null;
+                if (req.file) file = req.file;
+                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
+                if (fileExtension) fileExtension = fileExtension[0];
+
+                if (!file) {
+                    let current = u.pfp;
+
+                    if (current !== "https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png") {
+                        b2.getFileInfo({
+                            fileId: u.pfp_id
+                        }).then(async tt => {
+                            let data = tt.data;
+
+                            b2.deleteFileVersion({
+                                fileId: data.fileId,
+                                fileName: data.fileName
+                            });
+                            await user.updateOne({ session }, { $set: { pfp: `https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png`, pfp_id: "4_zd5afb20446dd61128b590419_f106e64e803b29f2b_d20221230_m174015_c004_v0402001_t0028_u01672422015619" } });
+                        });
+                    };
+                    delete avatarCache[u.uuid];
+                    return res.json({ OK: true, status: 200, text: `Updated avatar` });
+                }
+
+                if (file && file.mimetype !== "image/gif") {
+                    await sharp(file.buffer).resize({ width: 256, height: 256 }).toBuffer().then(data => {
+                        if (data) file.buffer = data; file.size = data.length;
+                    });
+                };
+
+                if (u.pfp !== "https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png") {
+                    b2.getFileInfo({
+                        fileId: u.pfp_id
+                    }).then(async tt => {
+                        let data = tt.data
+                        b2.deleteFileVersion({
+                            fileId: data.fileId,
+                            fileName: data.fileName
+                        });
+                    });
+                };
+
+                b2.getUploadUrl({
+                    bucketId: 'd5afb20446dd61128b590419'
+                }).then(tt => {
+                    upl = tt.data.uploadUrl; 
+                    authT = tt.data.authorizationToken;
+
+                    b2.uploadFile({
+                        uploadUrl: upl,
+                        uploadAuthToken: authT,
+                        fileName: file.originalname.split(' ').join('-'),
+                        contentLength: file.size,
+                        mime: file.mimetype,
+                        data: file.buffer,
+                        hash: '',
+                        onUploadProgress: (event) => {}
+                    }).then(async fin => { await user.updateOne({ session }, { $set: { pfp: `https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`, pfp_id: fin.data.fileId } }) });
+                });
+
+                delete avatarCache[u.uuid];
+                res.json({ OK: true, status: 200, text: `Updated avatar` });
+            };
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
+});
+
+a.post('/v1/create_url', async function (req, res) {
+    let { session } = req.cookies;
+    let { url_vr, title_vr, subtitle_vr, highlight_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let regex = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/
+    let url = regex.test(url_vr);
+    
+    if (!url) return res.status(403).json({ OK: false, status: 403, error: `Invalid URL` });
+    if (!title_vr) title_vr = url_vr.split('/')[2];
+    let u = await user.findOne({ session }).lean();
+    let token = Math.random().toString(32).substring(8);
+    let highlight = false;
+
+    let checkurl = await short_url.find({ author: u._id, blocked: false }).lean();
+    if (checkurl && checkurl.length > 0) {
+        if (checkurl.length > parseInt(u.linklimit)) return res.status(403).json({ OK: false, status: 403, error: `Upgrade plan to add more links` });
+    };
+
+    if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
+
+    await new short_url({
+        author: u._id,
+        link: encrypt(url_vr),
+        id: token,
+        title: encrypt(title_vr),
+        subtitle: encrypt(subtitle_vr),
+        thumbnail: encrypt(`https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`),
+        order: "99",
+        clicks: [],
+        highlight,
+        hidden: false,
+        blocked: false,
+        blocked_reason: "",
+        date: Date.now(),
+        uuid: randomUUID()
+    }).save();
+
+    res.json({ OK: true, status: 200, status: `Created link` });
+});
+
+a.get('/v1/remove_url/:uuid', async function (req, res) {
+    let { session } = req.cookies;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+    
+    let u = await user.findOne({ session }).lean();
+    let urls = await short_url.findOne({ author: u._id, uuid: req.params.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+    if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
+
+    await short_url.deleteOne({ uuid: urls.uuid });
+    res.json({ OK: true, status: 200, status: `Removed link` });
+});
+
+a.post('/v1/edit_url/:uuid', async function (req, res) {
+    let { session } = req.cookies;
+    let { title_vr, subtitle_vr, order_vr, url_vr, highlight_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+    
+    let u = await user.findOne({ session }).lean();
+    let urls = await short_url.findOne({ author: u._id, uuid: req.params.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+    if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
+
+    let title = title_vr;
+    let stitle = subtitle_vr;
+    let highlight = false
+
+    if (!title) title = decrypt(urls.title);
+    if (!url_vr) url_vr = decrypt(urls.link);
+
+    let regex = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/
+    let url = regex.test(url_vr);
+    
+    if (!url) return res.status(403).json({ OK: false, status: 403, error: `Invalid URL` });
+
+    if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
+
+    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), order: parseInt(order_vr), link: encrypt(url_vr), highlight } });
+    res.json({ OK: true, status: 200, text: `Updated link` });
+});
+
+a.post('/v1/account/settings/email', async function (req, res) {
+    let { session } = req.cookies;
+    let { currentEmail_vr, newEmail_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).lean();
+    let chcE = await user.find({  }, { name: 1, uuid: 1, email: 1 }).lean();
+    chcE = chcE.map((h) => { if (decrypt(h.email) == newEmail_vr.toLowerCase()) return h })[0];
+    if (decrypt(u.email) !== currentEmail_vr.toLowerCase()) return res.status(400).json({ OK: false, status: 400, error: `Please enter your current email address` });
+    if (decrypt(u.email) == newEmail_vr.toLowerCase()) return res.status(403).json({ OK: false, status: 403, error: `You can not change your email to the same email address!` });
+    if (decrypt(u.email).includes('@ferret.page')) return res.status(403).json({ OK: false, status: 403, error: `You can not change the email to a staff account.` });
+    if (chcE) return res.status(403).json({ OK: false, status: 403, error: `E-Mail is already taken` });
+
+    let confT = Math.random().toString(32).substring(4).toUpperCase();
+    await new verify_email({
+        uuid: u.uuid,
+        email: encrypt(newEmail_vr.toLowerCase()),
+        token: confT,
+        used: false,
+        valid: true,
+        date: Date.now()
+    }).save();
+
+    let transporter = nodemailer.createTransport({
+        host: "webserver4.pebblehost.com",
+        port: 465,
+        secure: true,
+        auth: {
+            user: "no-reply@ferret.page",
+            pass: `${process.env.PASSWORD}`,
+        },
+    });
+
+    let msg = {
+        from: '"no-reply@ferret.page" <no-reply@ferret.page>',
+        to: `${newEmail_vr.toLowerCase()}`,
+        subject: "Verify new E-Mail Address",
+        html: `<html><h4>Hello ${u.name}!</h4></br><h3>Here is your verification code: ${confT}</h3><br></html>`, // html body
+    };
+    let msg2 = {
+        from: '"no-reply@ferret.page" <no-reply@ferret.page>',
+        to: `${currentEmail_vr.toLowerCase()}`,
+        subject: "User E-Mail address changed",
+        html: `<html><h4>Hello ${u.name}!</h4></br><h3>It seems like your email address was changed to a different one. If you did not do this then please contact support: (${randomUUID()})</h3><br></html>`, // html body
+    };
+
+    await user.updateOne({ session }, { $set: { email: encrypt(newEmail_vr.toLowerCase()), verified: false } });
+
+    await new notification({
+        author: u._id,
+        from: u._id,
+        text: `Your E-Mail address has been changed`,
+        friendRequest: false,
+        hidden: false,
+        date: Date.now(),
+        uuid: randomUUID()
+    }).save();
+
+    res.json({ OK: true, status: 200, text: `Set email to: '${encrypt(newEmail_vr.toLowerCase())}'` });
+    const info = await transporter.sendMail(msg);
+    const info2 = await transporter.sendMail(msg2);
+});
+
+a.post('/v1/account/settings/password', async function (req, res) {
+    let { session } = req.cookies;
+    let { currentPass_vr, newPass_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).lean();
+    if (decrypt(u.password) !== currentPass_vr) return res.status(400).json({ OK: false, status: 400, error: `Please enter your current password` });
+    if (decrypt(u.password) == newPass_vr) return res.status(403).json({ OK: false, status: 403, error: `You can not change your password to the same password!` });
+
+    await user.updateOne({ session }, { $set: { password: encrypt(newPass_vr) } });
+
+    await new notification({
+        author: u._id,
+        from: u._id,
+        text: `Your password has been changed`,
+        friendRequest: false,
+        hidden: false,
+        date: Date.now(),
+        uuid: randomUUID()
+    }).save();
+
+    res.json({ OK: true, status: 200, text: `Set password to: '${encrypt(newPass_vr)}'` });
+});
+
+a.post('/v1/account/settings/delete_account', async function (req, res) {
+    let { session } = req.cookies;
+    let { delete_hc, TFA_hc } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    if (!delete_hc || delete_hc !== "on") return res.status(403).json({ OK: false, status: 403, error: `Please confirm account deletion` });
+    
+    let u = await user.findOne({ session }).lean();
+    if (!u) return res.status(404).json({ OK: false, status: 404, error: `Account not found` });
+    if (u.TFA && !TFA_hc) return res.status(404).json({ OK: false, status: 404, error: `Account has 2FA enabled` });
+    if (u.TFA) {
+        let verify = authenticator.verifyToken(decrypt(u.google_backup), `${TFA_hc}`);
+        if (!verify) return res.status(403).json({ OK: false, error: `Invalid Code` });
+    };
+    let confT = Math.random().toString(32).substring(4).toUpperCase();
+    await new tokens({
+        token: confT,
+        user: u.uuid,
+        valid: true,
+        uuid: randomUUID(),
+        date: Date.now()
+    }).save();
+    u.email = decrypt(u.email);
+
+    let transporter = nodemailer.createTransport({
+        host: "webserver4.pebblehost.com",
+        port: 465,
+        secure: true,
+        auth: {
+            user: "no-reply@ferret.page",
+            pass: `${process.env.PASSWORD}`,
+        },
+    });
+
+    let msg = {
+        from: '"no-reply@ferret.page" <no-reply@ferret.page>',
+        to: `${u.email}`,
+        subject: "Verify Account Deletion",
+        html: `<html><h4>Hello @${u.name}!</h4></br><h3>Here is your deletion code: <a href="${req.protocol}://${req.hostname}/api/v1/account/settings/delete_account?code=${confT}" target="_blank">${confT}</a></h3><br><br><p>If you did not request to delete this account please ignore this<br></p></html>`, // html body
+    };
+
+    const info = await transporter.sendMail(msg);
+    res.json({ OK: true, status: 200, text: `User has started account deletion request` });
+});
+
+a.get('/v1/account/settings/delete_account', async function (req, res) {
+    let { session } = req.cookies;
+    let { code } = req.query;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    if (!code) return res.status(403).json({ OK: false, status: 403, error: `This endpoint required a code` });
+    
+    let u = await user.findOne({ session }).lean();
+    if (!u) return res.status(404).json({ OK: false, status: 404, error: `Account not found` });
+
+    let t = await tokens.findOne({ user: u.uuid, token: code, valid: true }).lean();
+    if (!t) return res.status(404).json({ OK: false, status: 404, error: `Code not found` });
+
+    await notification.deleteMany({ author: u._id });
+    await sessions.deleteOne({ uuid: u.uuid });
+
+    await user.updateOne({ session }, { $set: { email: encrypt(randomUUID()), password: encrypt(randomUUID()), apiKey: encrypt(randomUUID()), session: encrypt(randomUUID()), blocked: true, hidden: true } });
+    
+    res.clearCookie('session');
+    res.json({ OK: true, status: 200, text: `User has been deleted` });
+});
+
+a.post('/v1/account/settings/add_account', async function (req, res) {
+    let { session } = req.cookies;
+    let { email_HC, password_HC, TFA_HC } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1, flag: 1} }]).lean();
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Invalid Authentication` });
+    if (!u.pro) return res.status(403).json({ OK: false, status: 403, error: `Must be a Upgraded account to access this endpoint` });
+
+    let con = false;
+    let chck = await user.find({  }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1, flag: 1} }]).lean();
+    chck.forEach(elm => {
+        if (elm && decrypt(elm.email) == email_HC.toLowerCase()) chck = elm;
+    });
+    if (chck && chck[0]) return res.status(403).json({ OK: false, status: 403, error: `Account does not exist with that E-Mail` });
+    if (password_HC !== decrypt(chck.password)) return res.status(403).json({ OK: false, status: 403, error: `Incorrect Password` });
+    if (!TFA_HC && chck.TFA) return res.status(403).json({ OK: false, status: 403, error: `Incorrect 2FA Code` });
+    if (chck.TFA) {
+        let verify = authenticator.verifyToken(decrypt(chck.google_backup), TFA_HC);
+        if (!verify) return res.status(403).json({ OK: false, status: 403, error: `Incorrect 2FA Code` });
+    };
+    if (decrypt(u.email) == decrypt(chck.email)) return res.status(403).json({ OK: false, status: 403, error: `You can not connect your account to the same account` });
+
+    if (chck.connectedUser && chck.connectedUser.length > 0) {
+        chck.connectedUser.forEach(elm => {
+            if (u.uuid == elm.user.uuid) con = true
+        });
+        if (con) return res.status(403).json({ OK: false, status: 403, error: `User is already connected to this account` });
+    };
+
+    await user.updateOne({ uuid: chck.uuid }, { $push: { connectedUser: [{ user: u._id, uuid: randomUUID(), date: Date.now() }] } });
+    await user.updateOne({ uuid: chck.uuid }, { $set: { pro: true, linklimit: "50" } });
+    await user.updateOne({ session }, { $push: { connectedUser: [{ user: chck._id, uuid: randomUUID(), date: Date.now() }] } });
+
+    res.json({ OK: true, status: 200, text: `Connected User` });
+});
+
+a.get('/v1/account/settings/switch_account', async function (req, res) {
+    let { session } = req.cookies;
+    if (!req.query.uuid) return res.status(403).json({ OK: false, status: 403, error: `Please specify uuid` });
+    if (req.query.uuid == "") return res.status(403).json({ OK: false, status: 403, error: `Please specify uuid` });
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, session: 1, hcverified: 1, hidden: 1, flag: 1} }]).lean();
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Invalid Authentication` });
+    if (!u.pro) return res.status(403).json({ OK: false, status: 403, error: `Must be a Upgraded account to access this endpoint` });
+    if (u.connectedUser.length < 1) return res.status(403).json({ OK: false, status: 403, error: `This user does not have any connected users` });
+
+    let con = null;
+    u.connectedUser.forEach(elm => {
+        if (elm.user.uuid == req.query.uuid) con = elm;
+    });
+
+    if (!con) return res.status(403).json({ OK: false, status: 403, error: `Invalid UUID` });
+    if (con.TFA) return res.status(403).json({ OK: false, status: 403, error: `User has 2FA enabled` });
+
+    let Nsession = randomUUID();
+    let token = randomUUID();
+
+    await sessions.updateOne({ uuid: u.uuid }, { $push: { sessions: [{ token, date: Date.now(), ip: encrypt(req.headers['x-forwarded-for']), logout: true }] } });
+    await user.updateOne({ uuid: u.uuid }, { $set: { session: token } });
+
+    await sessions.updateOne({ uuid: con.user.uuid }, { $push: { sessions: [{ token: Nsession, date: Date.now(), ip: encrypt(req.headers['x-forwarded-for']) }] } });
+    await user.updateOne({ uuid: con.user.uuid }, { $set: { session: Nsession, last_login: Date.now() } });
+
+    res.cookie('session', Nsession);
+    if (req.query.auto && req.query.auto == "true") return res.redirect(`/settings/switch_account`);
+    res.json({ OK: true, status: 200, text: `Switched User` });
+});
+
+a.get('/v1/account/settings/remove_account', async function (req, res) {
+    let { session } = req.cookies;
+    if (!req.query.uuid) return res.status(403).json({ OK: false, status: 403, error: `Please specify uuid` });
+    if (req.query.uuid == "") return res.status(403).json({ OK: false, status: 403, error: `Please specify uuid` });
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, session: 1, hcverified: 1, hidden: 1, flag: 1} }]).lean();
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Invalid Authentication` });
+    if (!u.pro) return res.status(403).json({ OK: false, status: 403, error: `Must be a Upgraded account to access this endpoint` });
+    if (u.connectedUser.length < 1) return res.status(403).json({ OK: false, status: 403, error: `This user does not have any connected users` });
+
+    let con = null;
+    u.connectedUser.forEach(elm => {
+        if (elm.user.uuid == req.query.uuid) con = elm;
+    });
+
+    if (!con) return res.status(403).json({ OK: false, status: 403, error: `Invalid UUID` });
+    if (con.TFA) return res.status(403).json({ OK: false, status: 403, error: `User has 2FA enabled` });
+
+    await user.updateOne({ uuid: u.uuid }, { $pull: { connectedUser: { user: con.user._id } } });
+    await user.updateOne({ uuid: con.user.uuid }, { $pull: { connectedUser: { user: u._id } } });
+
+    if (req.query.auto && req.query.auto == "true") return res.redirect(`/settings/switch_account`);
+    res.json({ OK: true, status: 200, text: `Removed User` });
+});
+
+a.get('/account/create_auth', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        let u = await user.findOne({ session }).lean();
+        if (u.TFA) return res.status(403).json({ OK: false, status: 403, error: "Account already has 2FA enabled" });
+
+        var formattedKey = authenticator.generateKey();
+
+        var qr = authenticator.generateTotpUri(formattedKey, `${u.name}`, "ferret.page", 'SHA1', 6, 30);
+        if (!qr) return res.status(500).json({ OK: false, error: `Could not load QR Image` });
+        QRCode.toDataURL(qr, function (err, url) {
+            var img = Buffer.from(url.split('base64,')[1], 'base64');
+            res.writeHead(200, {
+                'Content-Type': `image/png`,
+                'Content-Length': img.length
+            });
+            res.end(img);
+        });
+        await user.updateOne({ session }, { $set: { google_backup: encrypt(formattedKey) } });
+        // res.json({ OK: true, text: `OK` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.get('/account/verify_auth', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        let u = await user.findOne({ session }).lean();
+        if (u.TFA) return res.status(403).json({ OK: false, status: 403, error: "Account already has 2FA enabled" });
+
+        if (!u.google_backup) return res.status(403).json({ OK: false, status: 403, error: "Account does not have verification token. Contact support" });
+        let verify = authenticator.verifyToken(decrypt(u.google_backup), `${req.query.code}`);
+        if (!verify) return res.status(403).json({ OK: false, error: `Invalid Code` });
+        if (!u.TFA) {
+            await user.updateOne({ session }, { $set: { TFA: true } });
+            await badge.updateOne({ id: '35d071f4-0504-4e10-90ef-42c582b24817' }, { $push: { users: [{ user: u._id, date: Date.now(), disabled: true }] } });
+            res.json({ OK: true, text: `Added 2FA to your account!` });
+            await new notification({
+                author: u._id,
+                from: u._id,
+                text: `2FA has been added to your account`,
+                friendRequest: false,
+                hidden: false,
+                date: Date.now(),
+                uuid: randomUUID()
+            }).save();
+            return
+        }
+
+        res.json({ OK: true, text: `Sucessfully Authenticated` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.post('/v1/account/settings/2fa', async function (req, res) {
+    let { session } = req.cookies;
+    let { OAuth_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    if (!OAuth_vr) return res.status(400).json({ OK: false, status: 400, error: `Please input 2FA code` });
+
+    let u = await user.findOne({ session }).lean();
+    if (!u.TFA) return res.status(403).json({ OK: false, status: 403, error: "Account does not have 2FA enabled" });
+
+    let verify = authenticator.verifyToken(decrypt(u.google_backup), OAuth_vr);
+    if (!verify) return res.status(403).json({ OK: false, error: `Invalid Code` });
+    await user.updateOne({ session }, { $set: { TFA: false, google_backup: "" } });
+    await badge.updateOne({ id: '35d071f4-0504-4e10-90ef-42c582b24817' }, { $pull: { users: { uuid: u.uuid } } });
+
+    await new notification({
+        author: u._id,
+        from: u._id,
+        text: `2FA has been removed from your account`,
+        friendRequest: false,
+        hidden: false,
+        date: Date.now(),
+        uuid: randomUUID()
+    }).save();
+    res.json({ OK: true, status: 200, text: `Removed 2FA on your account` });
+});
+
+a.get('/admin/reserved/:name', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!req.params.name && req.query.name) {
+            let is = await misc.findOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f", "reserved.name": req.params.name.toLowerCase() }).lean();
+            if (!is) return res.sendStatus(403);
+            res.json({ OK: true, invite: is.invite });
+        }
+
+        let invite = Math.random().toString(32).substring(4).toUpperCase();
+        let is = await misc.findOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f", "reserved.name": req.params.name.toLowerCase() }).lean();
+        if (is) return res.sendStatus(403);
+        await misc.updateOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f" }, { $push: { reserved: [{ name: req.params.name.toLowerCase(), invite: encrypt(invite), uuid: randomUUID() }] } });
+
+        res.json({ OK: true, text: `Sucessfully Reserved` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.get('/admin/reserved', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!req.query.name) return res.sendStatus(404);
+
+        let is = await misc.findOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f", "reserved.name": req.query.name.toLowerCase() }).lean();
+        if (!is) return res.sendStatus(403);
+
+        is.reserved.forEach(elm => {
+            if (req.query.name.toLowerCase() == elm.name.toLowerCase()) is = elm;
+        });
+
+        res.json({ OK: true, invite: decrypt(is.invite), encrpyted: is.invite });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+module.exports = a;

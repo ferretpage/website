@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <%- include('../meta/index', { title: 'Create Account' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-3xl text-center my-2 mx-2">Ferret Registration</h1>
+    <div class="w-fit m-auto">
+        <form class="m-auto" id="form">
+            <div class="hidden" role="alert" id="error"></div>
+            <div class="mb-3">
+              <label for="InputEmail1" class="form-label">Email address</label>
+              <input type="email" class="form-control" id="InputEmail1" aria-describedby="emailHelp" name="email_VR" required>
+              <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+              <label for="InputPassword1" class="form-label">Password</label>
+              <input type="password" class="form-control" id="InputPassword1" name="password_VR">
+            </div>
+            <div class="mb-3">
+                <label for="InputPassword2" class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" id="InputPassword2" name="confpassword_VR">
+            </div>
+            <div class="col-auto"> 
+                <label for="username_vr" class="form-label">Username</label>
+                <div class="input-group mb-3">
+                  <span class="input-group-text" id="vripurl">https://view.rip/</span>
+                  <input type="text" class="form-control" id="username_vr" name="Username_VR" aria-describedby="vripurl" autocomplete="off" required>
+                </div>
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="Check1" name="TOS_VR">
+              <label class="form-check-label" for="Check1">Accept <span><a href="/tos" class="hover:underline" target="_blank">ToS</a></span></label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Submit</button>
+            <div class="my-2"></div>
+            <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
+        </form>
+    </div>
+</body>
+<script defer>
+    $('#form').submit(function (e) {
+        e.preventDefault();
+        const formData = new URLSearchParams(new FormData(this));
+
+        $('#error').text('');
+        $('#error').toggleClass(false);
+        let loading = document.getElementById('loading');
+
+        fetch(`/api/v1/register`, { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+            loading.setAttribute('class', 'hidden');
+            if (b.OK) {
+                console.log(b);
+                window.location.assign(`/dashboard`);
+            } else {
+                $('#error').text(b.error);
+                $('#error').addClass('alert alert-danger break-normal text-center my-1');
+            };
+        });
+    
+        loading.setAttribute('class', 'm-auto mt-1');
+    });
+</script>
+</html>

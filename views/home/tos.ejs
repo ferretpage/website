@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../meta/index', { title: 'Terms of Service' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <div class="w-fit m-auto break-words p-2 text-lg">
+        <div class="w-2/4 m-auto break-words">
+          <div class="p-2">
+            <h1>TERMS OF SERVICE</h1>
+            <h2 class="font-bold">LAST UPDATED: <time data-time="<%= new Date(parseInt(date.last_updated)).valueOf() %>"></time></h2>
+            <h2 class="font-bold">IN EFFECT: <time data-time="<%= new Date(parseInt(date.in_effect)).valueOf() %>"></time></h2><% if (parseInt(date.in_effect) > Date.now()) {%>
+            <div class="alert alert-danger my-2 w-fit m-auto break-normal" role="alert" id="error">DISCLAIMER: The terms of service is updating! Please read below.</div><%}%>
+            <div class="mt-4 text-center">
+              <h1 class="font-bold">1. REGISTRATION</h1>
+              <hr class="w-1/2 m-auto" style="border: solid 2px;">
+              <p>You may be required to register with Ferret. You agree to keep your password confidential and will be responsible for all use of your account and password. We reserve the right to remove, reclaim, or change a username you select if we determine, in our sole discretion, that such username is inappropriate, obscene, or otherwise objectionable.</p>
+            </div>
+            <div class="mt-4 text-center">
+              <h1 class="font-bold">2. PROHIBITED ACTIVITIES</h1>
+              <hr class="w-1/2 m-auto" style="border: solid 2px;">
+              <p>You may not access or use Ferret for any purpose other than that for which we make Ferret available.</p>
+              <p>As a user of Ferret, you agree not to:</p>
+              <p>a. Systematically retrieve data or other content from Ferret to create or compile, directly or indirectly, a collection, compilation, database, or directory without written permission from us.</p>
+              <p>b. Trick, defraud, or mislead us and other users, especially in any attempt to learn sensitive account information such as user passwords.</p>
+              <p>c. Circumvent, disable, or otherwise interfere with security-related features of Ferret, including features that prevent or restrict the use or copying of any Content or enforce limitations on the use of Ferret and/or the Content contained therein.</p>
+              <p>d. Disparage, tarnish, or otherwise harm, in our opinion, us and/or Ferret.</p>
+              <p>e. Use any information obtained from Ferret in order to harass, abuse, or harm another person.</p>
+              <p>f. Make improper use of our support services or submit false reports of abuse or misconduct.</p>
+              <p>g. Use Ferret in a manner inconsistent with any applicable laws or regulations.</p>
+              <p>h. Engage in unauthorized framing of or linking to Ferret.</p>
+              <p>i. Upload or transmit (or attempt to upload or to transmit) viruses, Trojan horses, or other material, including excessive spamming (continuous posting of repetitive text), that interferes with any party's uninterrupted use and enjoyment of Ferret or modifies, impairs, disrupts, alters, or interferes with the use, features, functions, operation, or maintenance of Ferret.</p>
+              <p>j. Delete the copyright or other proprietary rights notice from any Content.</p>
+              <p>k. Attempt to impersonate another user or person or use the username of another user.</p>
+              <p>l. Upload or transmit (or attempt to upload or to transmit) any material that acts as a passive or active information collection or transmission mechanism, including without limitation, clear graphics interchange formats (“gifs”), 1*1 pixels, web bugs, cookies, or other similar devices (sometimes referred to as “spyware” or “passive collection mechanisms” or “pcms”).</p>
+              <p>m. Harass, annoy, intimidate, or threaten any of our employees or agents engaged in providing any portion of Ferret to you.</p>
+              <p>n. Attempt to bypass any measures of Ferret designed to prevent or restrict access to Ferret, or any portion of Ferret.</p>
+              <p>o. Reverse engineer any of the software comprising or in any way making up a part of Ferret.</p>
+              <p>p. Make any unauthorized use of Ferret, including collecting usernames and/or email addresses of users by electronic or other means for the purpose of sending unsolicited email, or creating user accounts by automated means or under false pretenses.</p>
+              <p>q. Sell or otherwise transfer your profile.</p>
+            </div>
+            <div class="mt-2 text-center">
+              <h1 class="font-bold">3. TERM AND TERMINATION</h1>
+              <hr class="w-1/2 m-auto" style="border: solid 2px;">
+              <p>These Terms of Use shall remain in full force and effect while you use Ferret. WITHOUT LIMITING ANY OTHER PROVISION OF THESE TERMS OF USE, WE RESERVE THE RIGHT TO, IN OUR SOLE DISCRETION AND WITHOUT NOTICE OR LIABILITY, DENY ACCESS TO AND USE OF FERRET (INCLUDING BLOCKING CERTAIN IP ADDRESSES), TO ANY PERSON FOR ANY REASON OR FOR NO REASON, INCLUDING WITHOUT LIMITATION FOR BREACH OF ANY REPRESENTATION, WARRANTY, OR COVENANT CONTAINED IN THESE TERMS OF USE OR OF ANY APPLICABLE LAW OR REGULATION. WE MAY TERMINATE YOUR USE OR PARTICIPATION IN Ferret OR DELETE YOUR ACCOUNT AND ANY CONTENT OR INFORMATION THAT YOU POSTED AT ANY TIME, WITHOUT WARNING, IN OUR SOLE DISCRETION. If we terminate or suspend your account for any reason, you are prohibited from registering and creating a new account under your name, a fake or borrowed name, or the name of any third party, even if you may be acting on behalf of the third party. In addition to terminating or suspending your account, we reserve the right to take appropriate legal action, including without limitation pursuing civil, criminal, and injunctive redress.</p>
+            </div>
+            <div class="mt-2 text-center">
+              <h1 class="font-bold">4. CORRECTIONS</h1>
+              <hr class="w-1/2 m-auto" style="border: solid 2px;">
+              <p>There may be information on Ferret that contains typographical errors, inaccuracies, or omissions, including descriptions, pricing, availability, and various other information. We reserve the right to correct any errors, inaccuracies, or omissions and to change or update the information on Ferret at any time, without prior notice.</p>
+            </div>
+            <div class="mt-2 text-center">
+              <h1 class="font-bold">5. USER DATA</h1>
+              <hr class="w-1/2 m-auto" style="border: solid 2px;">
+              <p>We will maintain certain data that you transmit to Ferret for the purpose of managing the performance of Ferret, as well as data relating to your use of Ferret. Although we perform regular routine backups of data, you are solely responsible for all data that you transmit or that relates to any activity you have undertaken using Ferret. You agree that we shall have no liability to you for any loss or corruption of any such data, and you hereby waive any right of action against us arising from any such loss or corruption of such data.</p>
+            </div>
+            <div class="mt-2 text-center">
+              <h1 class="font-bold">6. USER CONTENT</h1>
+              <hr class="w-1/2 m-auto" style="border: solid 2px;">
+              <p>We reserve the right to remove any user generated content for any or no reason.</p>
+              <p>When you create or make available any Contributions, you thereby represent and warrant that:</p>
+              <p>a. The creation, distribution, transmission, public display, or performance, and the accessing, downloading, or copying of your Contributions do not and will not infringe the proprietary rights, including but not limited to the copyright, patent, trademark, trade secret, or moral rights of any third party.</p>
+              <p>b. Your Contributions are not unsolicited or unauthorized advertising, promotional materials, pyramid schemes, chain letters, spam, mass mailings, or other forms of solicitation.</p>
+              <p>c. Your Contributions are not obscene, lewd, lascivious, filthy, violent, harassing, libelous, slanderous, or otherwise objectionable (as determined by us).</p>
+              <p>d. Your Contributions are not used to harass or threaten (in the legal sense of those terms) any other person and to promote violence against a specific person or class of people.</p>
+              <p>e. Your Contributions do not violate any applicable law, regulation, or rule.</p>
+              <p>f. Your Contributions do not violate any applicable law concerning child pornography, or otherwise intended to protect the health or well-being of minors.</p>
+              <p>g. Your Contributions do not include any offensive comments that are connected to race, national origin, gender, sexual preference, or physical handicap.</p>
+              <p class="mt-1">Any use of Ferret in violation of the foregoing violates these Terms of Use and may result in, among other things, termination or suspension of your rights to use Ferret.</p>
+            </div>
+          </div>
+        </div>
+    </div>
+    <script defer>
+      $('time').each(function (e) {
+          time = parseInt($(this).attr('data-time'));
+          time = new Date(time).toLocaleString();
+          $(this).html(time);
+      });
+    </script>
+</body>
+</html>

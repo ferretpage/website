@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../meta/index', { title: 'Dashboard' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2">Your dashboard</h1>
+    <div class="w-fit m-auto break-words p-2 text-lg">
+        <div class="w-fit m-auto rounded-full" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full m-auto border-[2px] border-black mb-4" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
+        <hr/>
+        <div class="hidden" role="alert" id="error"></div>
+        <div class="my-2"></div><% if (acc.verified) {%>
+        <form id="mainUpdate-form" class="p-1 m-auto w-fit">
+            <div class="flex flex-auto gap-2">
+                <div class="form-floating mb-2 break-words">
+                    <input type="text" class="form-control" placeholder="Update your display name" id="updateDisplay" name="display_vr" value="<%=acc.displayName%>" autocomplete="off"></input>
+                    <label for="updateDisplay">Display</label>
+                </div>
+                <div class="form-floating mb-2 break-words">
+                    <input type="text" class="form-control" placeholder="Update your username" id="updateUsername" name="name_vr" value="<%=acc.name%>" autocomplete="off"></input>
+                    <label for="updateUsername">Username</label>
+                </div>
+                <div class="form-floating mb-2 break-words">
+                    <input type="text" class="form-control" placeholder="Update your location" id="updateLocation" name="location_vr" value="<%=acc.location%>" autocomplete="off"></input>
+                    <label for="updateLocation">Location</label>
+                </div>
+                <div class="form-floating mb-2 break-words">
+                    <input type="text" class="form-control" placeholder="Update your bio" id="updateBio" name="bio_vr" value="<%=acc.bio%>" autocomplete="off"></input>
+                    <label for="updateBio">Bio</label>
+                </div>
+            </div>
+            <hr class="w-1/2 m-auto"/>
+            <div class="w-min m-auto mt-2">
+                <button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Submit</button>
+                <div class="my-2"></div>
+                <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
+            </div>
+        </form>
+        <div class="my-3"></div>
+        <div class="w-fit border-black border-1 bg-zinc-300 p-3 m-auto">
+            <div class="w-fit p-4 m-auto flex flex-wrap gap-2">
+                <div class="flex align-middle w-fit m-auto hover:underline" id="createLink_VR" onclick="createLink()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/></svg>
+                    <p>Create link</p>
+                </div>
+                <div class="flex align-middle w-fit m-auto hover:underline" id="createQR_VR" onclick="createQR()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-qr-code" viewBox="0 0 16 16"><path d="M2 2h2v2H2V2Z"/><path d="M6 0v6H0V0h6ZM5 1H1v4h4V1ZM4 12H2v2h2v-2Z"/><path d="M6 10v6H0v-6h6Zm-5 1v4h4v-4H1Zm11-9h2v2h-2V2Z"/><path d="M10 0v6h6V0h-6Zm5 1v4h-4V1h4ZM8 1V0h1v2H8v2H7V1h1Zm0 5V4h1v2H8ZM6 8V7h1V6h1v2h1V7h5v1h-4v1H7V8H6Zm0 0v1H2V8H1v1H0V7h3v1h3Zm10 1h-1V7h1v2Zm-1 0h-1v2h2v-1h-1V9Zm-4 0h2v1h-1v1h-1V9Zm2 3v-1h-1v1h-1v1H9v1h3v-2h1Zm0 0h3v1h-2v1h-1v-2Zm-4-1v1h1v-2H7v1h2Z"/><path d="M7 12h1v3h4v1H7v-4Zm9 2v2h-3v-1h2v-1h1Z"/></svg>
+                    <p class="ml-2">View QR Code</p>
+                </div>
+            </div>
+            <div class="hidden" id="createLink2_VR">
+                <form id="nL-form" class="p-2 m-auto">
+                    <div class="flex flex-auto gap-2">
+                        <div class="form-floating mb-2 break-all">
+                            <input type="url" class="form-control" placeholder="Link" id="addURL" name="url_vr" autocomplete="off"></input>
+                            <label for="addURL">URL</label>
+                        </div>
+                        <div class="form-floating mb-2 break-all">
+                            <input type="text" class="form-control" placeholder="Title" id="addTitle" name="title_vr" autocomplete="off"></input>
+                            <label for="addTitle">Title</label>
+                        </div>
+                        <div class="form-floating mb-2 break-all">
+                            <input type="text" class="form-control" placeholder="Subtitle" id="addSubtitle" name="subtitle_vr" autocomplete="off"></input>
+                            <label for="addSubtitle">Subtitle</label>
+                        </div><% if (acc.pro) {%>
+                        <div class="form-check form-switch w-fit m-auto">
+                            <input class="form-check-input" type="checkbox" role="switch" id="highlight-link" name="highlight_vr">
+                            <label class="form-check-label" for="highlight-link">Highlight</label>
+                        </div><%}%>
+                    </div>
+                    <hr/>
+                    <div class="w-fit m-auto mt-2">
+                        <div class="w-fit p-8 m-auto flex flex-wrap gap-2">
+                            <% if (links.length < acc.linklimit) {%><button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Add link</button><%}%>
+                            <% if (links.length == acc.linklimit) {%><span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="You reached the maximum number of links"><button type="submit" disabled class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="disabled_button">Add link</button></span><%}%>
+                            <% if (links.length !== acc.linklimit && links.length > acc.linklimit) {%><span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="You reached the maximum number of links"><button type="submit" disabled class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="disabled_button">Add link</button></span><%}%>
+                            <h4 class="mt-2"><%=links.length%>/<%=acc.linklimit%></h4>
+                        </div>
+                        <div class="my-2"></div>
+                        <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
+                    </div>
+                </form>
+            </div>
+            <div class="hidden" id="createQR2_VR">
+                <% if (qr) {%><a class="hover:text-current w-fit m-auto" href="<%=qr%>" download="qrcode.png"><img src="<%=qr%>" draggable="false"></a><%} else {%><h1 class="text-2xl w-fit m-auto">Unable to load QR code.</h1><%}%>
+            </div>
+        </div>
+        <div class="w-fit p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => {%>
+            <div class="border-2 border-black bg-zinc-300 rounded-lg w-fit m-auto p-4">
+                <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-pulse<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
+                    <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+                </div>
+                <div class="m-auto w-fit">
+                    <%=elm.title%><% if (elm.subtitle !== "") {%>
+                    <span class="text-gray-700 figure-caption"><%=elm.subtitle%></span><%}%>
+                </div></a>
+                <div class="w-fit m-auto flex flex-wrap gap-2">
+                    <input type="text" class="hidden" name="dismiss_vr" value="<%=elm.uuid%>">
+                    <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Remove"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-x-square-fill align-middle mt-1 m-auto w-fit" id="<%=elm.uuid%>-dismiss" onclick="dismiss('<%=elm.uuid%>')" viewBox="0 0 16 16"><path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/></svg></span>
+                    <input type="text" class="hidden" name="edit_vr" value="<%=elm.uuid%>">
+                    <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square align-middle mt-1 m-auto w-fit" draggable="false" data-bs-toggle="modal" data-bs-target="#edit-<%=elm.uuid%>" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg></span>
+                </div>
+            </div>
+            <form id="<%=elm.uuid%>-form">
+                <div class="modal fade" id="edit-<%=elm.uuid%>" tabindex="-1" aria-labelledby="edit-<%=elm.uuid%>" aria-hidden="true">
+                    <div class="modal-dialog my-8 md:my-2">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title text-black" id="editModalLabel">Edit Link <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                        <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                      </div>
+                      <div class="modal-body text-black">
+                        <div id="errorLi-<%=elm.uuid%>" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                        <div class="form-row align-items-center">
+                          <div class="form-row align-items-center">
+                            <div class="col-auto" style="width: 75%; margin: auto;">
+                                <div class="form-floating mb-2 break-all">
+                                    <input type="url" class="form-control" placeholder="Link" id="editLink" name="url_vr" value="<%=elm.link%>" autocomplete="off"></input>
+                                    <label for="addTitle">Link</label>
+                                </div>
+                                <div class="form-floating mb-2 break-all">
+                                    <input type="text" class="form-control" placeholder="Title" id="addTitle" name="title_vr" value="<%=elm.title%>" autocomplete="off"></input>
+                                    <label for="addTitle">Title</label>
+                                </div>
+                                <div class="form-floating mb-2 break-all">
+                                    <input type="text" class="form-control" placeholder="Subtitle" id="addSubtitle" name="subtitle_vr" value="<%=elm.subtitle%>" autocomplete="off"></input>
+                                    <label for="addSubtitle">Subtitle</label>
+                                </div>
+                                <div class="form-floating mb-2 break-all">
+                                    <input type="text" class="form-control" placeholder="Order" id="addOrder" name="order_vr" value="<%=elm.order%>" autocomplete="off"></input>
+                                    <label for="addOrder">Order</label>
+                                </div><% if (acc.pro) {%>
+                                <div class="form-check form-switch w-fit m-auto">
+                                    <% if (!elm.highlight) {%><input class="form-check-input" type="checkbox" role="switch" id="highlight-linkEdit" name="highlight_vr"><%}%>
+                                    <% if (elm.highlight) {%><input class="form-check-input" type="checkbox" role="switch" id="highlight-linkEdit" name="highlight_vr" checked><%}%>
+                                    <label class="form-check-label" for="highlight-linkEdit">Highlight</label>
+                                </div><%}%>
+                            </div>
+                          </div>
+                          <div class="w-fit m-auto">
+                            <div class="hidden" id="Lispinner-<%=elm.uuid%>" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Save changes</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            <%})}%>
+        </div><%} else {%>
+        <form id="mainVerify-form" class="p-2 m-auto">
+            <div class="flex flex-auto gap-2">
+                <div class="form-floating mb-2 break-all">
+                    <input type="text" class="form-control" placeholder="Enter verification code" id="updateVerify" name="verifcode" maxlength="9" autocomplete="off" required></input>
+                    <label for="updateDisplay">Verification Code</label>
+                </div>
+            </div>
+            <hr/>
+            <div class="w-fit m-auto mt-2">
+                <button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Verify E-Mail</button>
+                <div class="my-2"></div>
+                <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
+            </div>
+        </form><%}%>
+
+        <form id="avatar-form">
+            <div class="modal fade" id="changePFP" tabindex="-1" aria-labelledby="changePFPModalLabel" aria-hidden="true">
+                <div class="modal-dialog my-8 md:my-2">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title text-black" id="editModalLabel">Edit Avatar <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                    <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                  </div>
+                  <div class="modal-body text-black">
+                    <div id="errorAv" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                    <div class="form-row align-items-center">
+                      <div class="form-row align-items-center">
+                        <div class="col-auto" style="width: 75%; margin: auto;">
+                          <label class="sr-only" for="AvatarFile">Avatar</label>
+                          <input type="file" class="form-control" id="AvatarFile" name="pfp" accept="image/*">
+                          <div class="my-1"></div>
+                        </div>
+                      </div>
+                      <div class="hidden" id="AVspinner" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Save changes</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+    </div>
+    <script defer>
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+        function createLink() {
+            let two = document.getElementById('createLink2_VR');
+            let change = two.getAttribute('class');
+            
+            if (change == "hidden") {
+                two.setAttribute('class', 'w-fit m-auto');
+            };
+            if (change !== "hidden") {
+                two.setAttribute('class', 'hidden');
+            };
+        };
+        function createQR() {
+            let two = document.getElementById('createQR2_VR');
+            let change = two.getAttribute('class');
+            
+            if (change == "hidden") {
+                two.setAttribute('class', 'w-fit m-auto');
+            };
+            if (change !== "hidden") {
+                two.setAttribute('class', 'hidden');
+            };
+        };<% if (!acc.verified) {%>
+        $('#mainVerify-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+
+            $('#error').text('');
+            $('#error').toggleClass(false);
+            let loading = document.getElementById('loading');
+
+            fetch(`/api/v1/verify/<%=acc.uuid%>?json=true`, { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+                loading.setAttribute('class', 'hidden');
+                if (!b.OK) {
+                    $('#error').text(b.error);
+                    $('#error').addClass('alert alert-danger break-normal my-1 text-center');
+                } else {
+                    window.location.assign(`/dashboard`);
+                };
+            });
+    
+            loading.setAttribute('class', 'm-auto mt-1');
+        });<%}%>
+
+        $('#mainUpdate-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+
+            $('#error').text('');
+            $('#error').toggleClass(false);
+            let loading = document.getElementById('loading');
+
+            fetch(`/api/v1/account/edit`, { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+                loading.setAttribute('class', 'hidden');
+                if (b.OK) {
+                    console.log(b);
+                    window.location.assign(`/dashboard`);
+                } else {
+                    $('#error').text(b.error);
+                    $('#error').addClass('alert alert-danger break-normal my-1 text-center');
+                };
+            });
+    
+            loading.setAttribute('class', 'm-auto mt-1');
+        });
+
+        $('#nL-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+
+            $('#error').text('');
+            $('#error').toggleClass(false);
+            let loading = document.getElementById('loading');
+
+            fetch(`/api/v1/create_url`, { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+                loading.setAttribute('class', 'hidden');
+                if (b.OK) {
+                    console.log(b);
+                    window.location.assign(`/dashboard`);
+                } else {
+                    $('#error').text(b.error);
+                    $('#error').addClass('alert alert-danger break-normal my-1 text-center');
+                };
+            });
+    
+            loading.setAttribute('class', 'm-auto mt-1');
+        });
+
+        $('#avatar-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new FormData();
+            let d = document.getElementById('AvatarFile');
+            let av = document.getElementById('AVspinner');
+            let dd = new FileReader();
+            formData.append("pfp", d.files[0]);
+
+            av.setAttribute('class', 'spinner-border');
+            fetch('/api/v1/account/edit/avatar', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+              $('#errorAv').text('');
+              $('#error').toggleClass(false);
+              av.setAttribute('class', 'hidden');
+              if (w.OK) {
+                $('#errorAv').text(w.text);
+                $('#errorAv').addClass('alert alert-success my-1');
+              } else {
+                $('#errorAv').text(w.error);
+                $('#errorAv').addClass('alert alert-danger my-1');
+              }
+            }).catch(e => {
+              console.log(e);
+              $('#errorAv').text(e);
+              $('#errorAv').addClass('alert alert-danger my-1');
+            });
+        });<% if (links) {%>
+            function dismiss(uuid) {
+                fetch(`/api/v1/remove_url/${uuid}`, { method: 'get' }).then((r)=>r.json()).then((w)=>{
+                    $('#error').text('');
+                    $('#error').toggleClass(false);
+                    console.log(w.error);
+                    if (!w.error) {
+                      if (w.OK) return window.location.reload();
+                    } else {
+                      $('#error').text(w.error);
+                      $('#error').addClass('alert alert-danger m-auto my-2 w-fit');
+                    }
+                }).catch(e => {
+                  console.log(e);
+                  window.location.assign('/dashboard');
+                });
+            };<% links.forEach((elm) => {%>
+            $('#<%=elm.uuid%>-form').submit(function (e) {
+                e.preventDefault();
+                const formData = new URLSearchParams(new FormData(this));
+                let av = document.getElementById('Lispinner-<%=elm.uuid%>');
+
+                av.setAttribute('class', 'spinner-border');
+                fetch('/api/v1/edit_url/<%=elm.uuid%>', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+                  $('#errorLi-<%=elm.uuid%>').text('');
+                  $('#error').toggleClass(false);
+                  av.setAttribute('class', 'hidden');
+                  if (w.OK) {
+                    $('#errorLi-<%=elm.uuid%>').text(w.text);
+                    $('#errorLi-<%=elm.uuid%>').addClass('alert alert-success my-1');
+                  } else {
+                    $('#errorLi-<%=elm.uuid%>').text(w.error);
+                    $('#errorLi-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+                  }
+                }).catch(e => {
+                  console.log(e);
+                  $('#errorLi-<%=elm.uuid%>').text(e);
+                  $('#errorLi-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+                });
+            });<%})%>
+        <%}%>
+
+        fetch('/api/v1/account?name=<%=acc.nameToFind%>').json();
+    </script>
+</body>
+</html>

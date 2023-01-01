@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../meta/index', { title: "Connected Users" }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <div class="text-center p-3">
+        <h1 class="text-3xl font-bold w-fit m-auto align-middle text-center flex">Connected Users: <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-sliders2 ml-2 mt-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10.5 1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4H1.5a.5.5 0 0 1 0-1H10V1.5a.5.5 0 0 1 .5-.5ZM12 3.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Zm-6.5 2A.5.5 0 0 1 6 6v1.5h8.5a.5.5 0 0 1 0 1H6V10a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5ZM1 8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2A.5.5 0 0 1 1 8Zm9.5 2a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V13H1.5a.5.5 0 0 1 0-1H10v-1.5a.5.5 0 0 1 .5-.5Zm1.5 2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Z"/></svg></h1>
+
+        <div class="my-4"></div>
+        <div class="w-fit p-4 m-auto flex flex-wrap gap-2"><% if (acc.connectedUser && acc.connectedUser.length > 0) { acc.connectedUser.forEach((elm) => {%>
+            <div class="w-fit m-auto">
+                <a href="/<%=elm.user.name%>" class="hover:text-current hover:underline" target="_blank"><img src="/avatar/<%=elm.user.uuid%>" class="rounded-full w-[64px] h-[64px] object-fill m-auto align-middle mb-1 border-black border-2" draggable="false">
+                <p class="text-2xl align-middle"><% if (elm.user.name !== '') {%>@<%=elm.user.name%><%}%><% if (elm.user.displayName == '' && elm.user.name == '') {%><%=elm.user.uuid%><%}%></p></a>
+                <div class="my-2"></div>
+                <span class="text-xl align-middle"><a href="/api/v1/account/settings/switch_account?uuid=<%=elm.user.uuid%>&auto=true" class="hover:text-current hover:underline">Switch To User</a></span>
+                <span class="text-xl align-middle"><a href="/api/v1/account/settings/remove_account?uuid=<%=elm.user.uuid%>&auto=true" class="hover:text-current hover:underline">Remove User</a></span>
+            </div><%})} else {%>
+            <div class="w-fit m-auto">
+                <p class="text-2xl align-middle">No connected users found...</p>
+            </div><%}%>
+        </div>
+        <hr style="height: 4.5px;" class="rounded w-1/2 m-auto mb-4">
+        <button class="hidden" style="background-color: rgb(80, 80, 228); border-color: black; border-width: .5px;" onclick="hideAdd()" id="AfterHide">Cancel</button>
+        <button class="btn btn-primary" style="background-color: rgb(80, 80, 228); border-color: black; border-width: .5px;" onclick="hideAdd()" id="BeforeHide">Add new account</button>
+        <div class="hidden" id="initialHide">
+            <form id="addUser-form" class="border-2 border-black rounded-lg w-fit m-auto p-4">
+                <h4 class="align-middle font-bold mb-3">Add Connected User</h4>
+                <div id="errorAdd" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                <div class="hidden" role="alert" id="error"></div>
+                <div class="mb-3">
+                  <label for="InputEmail1" class="form-label">Email address</label>
+                  <input type="email" class="form-control" id="InputEmail1" aria-describedby="emailHelp" name="email_HC" autocomplete="off" required>
+                </div>
+                <div class="mb-3">
+                  <label for="InputPassword1" class="form-label">Password</label>
+                  <input type="password" class="form-control" id="InputPassword1" autocomplete="off" name="password_HC">
+                </div>
+                <div class="mb-3">
+                    <label for="InputTFA1" class="form-label">2FA Code</label>
+                    <input type="text" class="form-control" id="InputTFA1" maxlength="6" placeholder="Google Auth Code (Optional)" autocomplete="off" name="TFA_HC">
+                </div>
+                <button id="settingsAdd-BTN" class="btn btn-primary" style="background-color: rgb(80, 80, 228); border-color: black; border-width: .5px;" type="submit">Add User</button>
+                <div class="my-2"></div>
+                <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
+            </form>
+        </div>
+    </div><br>
+</body>
+<script defer>
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+$('time').each(function (e) {
+    time = parseInt($(this).attr('data-time'));
+    time = new Date(time).toLocaleString();
+    $(this).html(time);
+});
+
+function hideAdd() {
+    let d = document.getElementById("initialHide");
+    let d2 = document.getElementById("BeforeHide");
+    let a = document.getElementById("AfterHide");
+
+    if (d.getAttribute('class') == "hidden") {
+        d2.setAttribute('class', 'hidden');
+        d.setAttribute('class', '');
+        a.setAttribute('class', 'btn btn-primary mb-4');
+        return
+    };
+    d.setAttribute('class', 'hidden');
+    a.setAttribute('class', 'hidden');
+    d2.setAttribute('class', 'btn btn-primary mb-4');
+}
+
+$('#addUser-form').submit(function (e) {
+  e.preventDefault();
+  const formData = new URLSearchParams(new FormData(this));
+
+  fetch('/api/v1/account/settings/add_account', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+    $('#errorAdd').text('');
+    $('#errorAdd').toggleClass(false);
+    console.log(w.error);
+    if (!w.error) {
+      $('#errorAdd').text(w.text);
+      $('#errorAdd').addClass('alert alert-success m-auto my-2 w-fit');
+    } else {
+      $('#errorAdd').text(w.error);
+      $('#errorAdd').addClass('alert alert-danger m-auto my-2 w-fit');
+    }
+  }).catch(e => {
+    console.log(e);
+    window.location.assign('/settings');
+  });
+});
+</script>
+</html>

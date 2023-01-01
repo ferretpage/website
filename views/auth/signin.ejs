@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <%- include('../meta/index', { title: 'Sign In' }); %>
+</head>
+<body class="bg-meowmail-main">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-3xl text-center my-2 mx-2 text-black">Ferret Sign In</h1>
+    <div class="w-fit m-auto">
+        <form class="m-auto" id="form">
+            <div class="hidden" role="alert" id="error"></div>
+            <input type="text" class="hidden" id="hiddenCode" name="code_VR" value="<% if (code) {%><%=code%><%}%>">
+            <div class="mb-3">
+              <label for="InputEmail1" class="form-label">E-Mail Address</label>
+              <input type="email" class="form-control" id="InputEmail1" aria-describedby="emailHelp" name="email_VR" required>
+            </div>
+            <div class="mb-3">
+              <label for="InputPassword1" class="form-label">Password</label>
+              <input type="password" class="form-control" id="InputPassword1" name="password_VR">
+            </div>
+            <div class="mb-3">
+                <label for="InputTFA1" class="form-label">2FA Code</label>
+                <input type="text" class="form-control" id="InputTFA1" maxlength="6" placeholder="Google Auth Code (Optional)" autocomplete="off" name="TFA_VR">
+              </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="Check1" name="expire_VR">
+              <label class="form-check-label" for="Check1">Expire after 72 hours?</label>
+            </div>
+            <div class="w-fit m-auto"><button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Log In</button></div>
+            <div class="my-2"></div>
+            <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
+        </form>
+    </div>
+</body>
+<script defer>
+    $('#form').submit(function (e) {
+        e.preventDefault();
+        const formData = new URLSearchParams(new FormData(this));
+
+        $('#error').text('');
+        $('#error').toggleClass(false);
+        let loading = document.getElementById('loading');
+
+        fetch(`/api/v1/signin`, { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+            loading.setAttribute('class', 'hidden');
+            if (b.OK) {
+                console.log(b);
+                window.location.assign(`/dashboard`);
+            } else {
+                $('#error').text(b.error);
+                $('#error').addClass('alert alert-danger break-normal my-1');
+            };
+        });
+    
+        loading.setAttribute('class', 'm-auto mt-1');
+    });
+</script>
+</html>

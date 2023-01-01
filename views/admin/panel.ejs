@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../meta/index', { title: 'Admin Panel' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center mb-4">Admin Panel</h1>
+    <div class="w-fit m-auto break-words text-lg p-2">
+        <table class="border-2 border-black text-center align-middle break-all">
+            <thead>
+              <tr>
+                <th class="p-2">User</th>
+                <th class="p-2">E-Mail</th>
+                <th class="p-2">Joined</th>
+                <th class="p-2">Verified</th>
+                <th class="p-2">Details</th>
+              </tr>
+            </thead><% users.forEach((elm) => {%>
+            <tbody class="font-bold">
+              <tr>
+                <td class="p-2"><a class="hover:text-current hover:underline" href="/<%=elm.name%>" target="_blank">@<% if (elm.name !== "") {%><%=elm.name%><%} else {%><%=elm.uuid%><%}%></a></td>
+                <td class="p-2" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Joined: <%= new Date(parseInt(elm.createdAt)).toLocaleString() %>"><% const [name, domain] = elm.email.split('@'); let email = `${name[0]}${new Array(name.length - 1).join('*')}${name[name.length - 1]}@${domain}`; %><%=email%></td>
+                <td class="p-2"><time data-time="<%=elm.createdAt%>"></time></td>
+                <td class="p-2"><%=elm.vrverified%></td>
+                <td class="p-2"><a class="hover:text-current hover:underline" href="/<%=elm.name%>/edit" target="_blank">Edit</a></td>
+              </tr>
+            </tbody><%})%>
+        </table>
+    </div>
+    <div class="my-2"></div>
+    <div class="w-fit m-auto break-words text-lg p-2">
+      <div id="errorPaste" class="" role="alert" style="max-width: max-content; margin: auto; margin-bottom: 15px;"></div>
+      <form id="pasteText">
+        <textarea class="pasteBox bg-ayyblue-white-200 dark:bg-ayyblue-black-400 text-ayyblue-black dark:text-ayyblue-white" id="text" name="text" style="height: 350px; width: 500px; overflow: auto;"></textarea>
+        <div class="spacer"></div>
+        <div class="w-fit m-auto"><button type="submit" class="btn btn-primary" style="background-color: rgb(80, 80, 228); border-color: black; border-width: .5px;">Create</button></div>
+      </form>
+    </div>
+    <script defer>
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+        $('time').each(function (e) {
+            time = parseInt($(this).attr('data-time'));
+            time = new Date(time).toLocaleString();
+            $(this).html(time);
+        });
+
+        $('#pasteText').submit(function (e) {
+          e.preventDefault();
+          const formData = new URLSearchParams(new FormData(this));
+
+          fetch('/api/paste/create', { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+            $('#errorPaste').text('');
+            $('#errorPaste').toggleClass(false);
+            if (!b.error) {
+              $('#errorPaste').text(`Created Paste: https://had.contact/api${b.message}`);
+              $('#errorPaste').addClass('alert alert-success my-1');
+            } else {
+              $('#errorPaste').text(b.error);
+              $('#errorPaste').addClass('alert alert-danger my-1');
+            }
+          }).catch(e => {
+            console.log(e);
+          });
+        });
+    </script>
+</body>
+</html>

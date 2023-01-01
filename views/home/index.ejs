@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../meta/index', { title: 'Home' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2">All in One.</h1>
+    <div class="w-fit m-auto break-words p-2 text-lg">
+        <hr/>
+        <div class="my-2"></div>
+        <p class="text-center font-bold align-middle">Have all your links in one place!</p>
+        <p class="text-center font-bold align-middle">Simply claim your unique username by registering today</p>
+        <p class="text-center font-bold align-middle">Share & Manage your profile easily</p><% if (!acc) {%>
+        <div class="my-8"></div>
+        <div class="w-fit m-auto"><a class="btn-lg btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" href="/register">Create account</a></div><%}%>
+    </div>
+</body>
+</html>

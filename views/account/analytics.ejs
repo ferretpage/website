@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../meta/index', { title: 'Analytics' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2">Your analytics</h1>
+    <div class="w-fit m-auto break-words p-2 text-lg">
+        <div>
+            <div class="chart">
+                <canvas id="myChart" width="400" height="400"></canvas>
+                <div class="w-fit m-auto"><label class="text-ayyblue-black dark:text-ayyblue-white underline">Views: <span class="font-bold" id="count"></span> in the past <% if (!acc.pro) {%><span class="font-bold">7</span> days<%}%><% if (acc.pro) {%><span class="font-bold">30</span> days<%}%></label></div>
+            </div>
+        </div>
+    </div>
+    <script defer>
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+        $('time').each(function (e) {
+    time = parseInt($(this).attr('data-time'));
+    time = new Date(time).toLocaleString();
+    $(this).html(time);
+});
+
+const ctx = document.getElementById('myChart').getContext('2d');
+const xs = [];
+const ys = [];
+let dP = 0;
+let d = [<% acc.views.forEach((elm) => {%>{ date: '<%=elm.date%>' }, <%})%>];
+
+d.forEach(w => {
+    console.log(Date.now(), new Date(w.date).valueOf()+<% if (!acc.pro) {%>604800000<%}%><%if (acc.pro) {%>2629744000<%}%>);
+    if (Date.now() < new Date(w.date).valueOf()+<% if (!acc.pro) {%>604800000<%}%><%if (acc.pro) {%>2629744000<%}%>) {
+        dP = parseInt(dP)+1;
+        document.getElementById('count').innerText = dP
+        ys.push(dP);
+        xs.push(new Date(w.date).toLocaleString());
+    };
+});
+let delayed;
+const myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: xs,
+        datasets: [{
+            label: '# of Views',
+            data: ys,
+            backgroundColor: [
+                'rgba(128, 102, 242, 0.6)'
+            ],
+            borderColor: [
+                'rgba(128, 102, 242, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        animation: {
+          onComplete: () => {
+            delayed = true;
+          },
+          delay: (context) => {
+            let delay = 0;
+            if (context.type === 'data' && context.mode === 'default' && !delayed) {
+              delay = context.dataIndex * 15 + context.datasetIndex * 15;
+            }
+            return delay;
+          },
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+</body>
+</html>
