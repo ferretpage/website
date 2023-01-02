@@ -323,7 +323,7 @@ a.get('/:user', async function (req, res) {
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
         if (auth && auth.status == 403) return res.redirect('/');
-        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account)); links = decrypt(auth.links);
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
     if (acc && acc.blocked) return res.redirect('/help/suspended-accounts');
     let v = await user.findOne({ nameToFind: req.params.user.toUpperCase(), hidden: false }).lean();
@@ -342,7 +342,6 @@ a.get('/:user', async function (req, res) {
         await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: acc._id, uuid: randomUUID(), date: Date.now() }] } });
     }
 
-    if (links) links = JSON.parse(links);
     if (!links) {
         links = await short_url.find({ author: v._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 

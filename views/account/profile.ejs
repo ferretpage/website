@@ -7,8 +7,10 @@
     <meta property="twitter:description" content="<% if (view.bio !== '') {%><%=view.bio%><%} else {%>This user has not set a bio yet<%}%>">
     <meta property="twitter:image" content="https://ferret.page/avatar/<%=view.uuid%>">
     <meta property="twitter:url" content="https://ferret.page/<%=view.name%>">
-    <link rel="icon" href="/avatar/<%=view.uuid%>">
-    <link rel="icon" rel="apple-touch-icon" href="/avatar/<%=view.uuid%>">
+    <meta property="title" content="<%=view.name%>'s Profile | Ferret">
+    <meta name="description" content="<% if (view.bio !== '') {%><%=view.bio%><%} else {%>This user has not set a bio yet<%}%>">
+    <link rel="icon" href="https://ferret.page/avatar/<%=view.uuid%>">
+    <link rel="icon" rel="apple-touch-icon" href="https://ferret.page/avatar/<%=view.uuid%>">
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
