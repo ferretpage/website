@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="<%= theme %>" lang="en" id="html">
 <head>
     <%- include('../meta/index', { title: 'Dashboard' }); %>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
-    <h1 class="font-bold text-4xl text-center my-2 mx-2">Your dashboard</h1>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard</h1>
     <div class="w-fit m-auto break-words p-2 text-lg">
-        <div class="w-fit m-auto rounded-full hover:cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full m-auto border-[2px] border-black mb-4" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
-        <hr/>
+        <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full m-auto border-[2px] border-black mb-4" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
+        <hr class="w-[35%] m-auto dark:text-white dark:p-[1px]"/>
         <div class="hidden" role="alert" id="error"></div>
         <div class="my-2"></div><% if (acc.verified) {%>
         <form id="mainUpdate-form" class="p-1 m-auto w-fit">
@@ -30,7 +32,7 @@
                     <label for="updateBio">Bio</label>
                 </div>
             </div>
-            <hr class="w-1/2 m-auto"/>
+            <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
             <div class="w-min m-auto mt-2">
                 <button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Submit</button>
                 <div class="my-2"></div>
@@ -38,13 +40,13 @@
             </div>
         </form>
         <div class="my-3"></div>
-        <div class="w-fit border-black border-1 bg-zinc-300 p-3 m-auto">
+        <div class="w-fit border-black border-1 bg-zinc-300 dark:bg-zinc-700 dark:border-white p-3 m-auto">
             <div class="w-fit p-4 m-auto flex flex-wrap gap-2">
-                <div class="flex align-middle w-fit m-auto hover:underline hover:cursor-pointer" id="createLink_VR" onclick="createLink()">
+                <div class="flex align-middle w-fit m-auto hover:underline hover:cursor-pointer dark:text-white" id="createLink_VR" onclick="createLink()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/></svg>
                     <p>Create link</p>
                 </div>
-                <div class="flex align-middle w-fit m-auto hover:underline hover:cursor-pointer" id="createQR_VR" onclick="createQR()">
+                <div class="flex align-middle w-fit m-auto hover:underline hover:cursor-pointer dark:text-white" id="createQR_VR" onclick="createQR()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-qr-code" viewBox="0 0 16 16"><path d="M2 2h2v2H2V2Z"/><path d="M6 0v6H0V0h6ZM5 1H1v4h4V1ZM4 12H2v2h2v-2Z"/><path d="M6 10v6H0v-6h6Zm-5 1v4h4v-4H1Zm11-9h2v2h-2V2Z"/><path d="M10 0v6h6V0h-6Zm5 1v4h-4V1h4ZM8 1V0h1v2H8v2H7V1h1Zm0 5V4h1v2H8ZM6 8V7h1V6h1v2h1V7h5v1h-4v1H7V8H6Zm0 0v1H2V8H1v1H0V7h3v1h3Zm10 1h-1V7h1v2Zm-1 0h-1v2h2v-1h-1V9Zm-4 0h2v1h-1v1h-1V9Zm2 3v-1h-1v1h-1v1H9v1h3v-2h1Zm0 0h3v1h-2v1h-1v-2Zm-4-1v1h1v-2H7v1h2Z"/><path d="M7 12h1v3h4v1H7v-4Zm9 2v2h-3v-1h2v-1h1Z"/></svg>
                     <p class="ml-2">View QR Code</p>
                 </div>
@@ -66,7 +68,7 @@
                         </div><% if (acc.pro) {%>
                         <div class="form-check form-switch w-fit m-auto">
                             <input class="form-check-input" type="checkbox" role="switch" id="highlight-link" name="highlight_vr">
-                            <label class="form-check-label" for="highlight-link">Highlight</label>
+                            <label class="form-check-label dark:text-white" for="highlight-link">Highlight</label>
                         </div><%}%>
                     </div>
                     <hr/>
@@ -75,7 +77,7 @@
                             <% if (links.length < acc.linklimit) {%><button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Add link</button><%}%>
                             <% if (links.length == acc.linklimit) {%><span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="You reached the maximum number of links"><button type="submit" disabled class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="disabled_button">Add link</button></span><%}%>
                             <% if (links.length !== acc.linklimit && links.length > acc.linklimit) {%><span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="You reached the maximum number of links"><button type="submit" disabled class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="disabled_button">Add link</button></span><%}%>
-                            <h4 class="mt-2"><%=links.length%>/<%=acc.linklimit%></h4>
+                            <h4 class="mt-2 dark:text-white"><%=links.length%>/<%=acc.linklimit%></h4>
                         </div>
                         <div class="my-2"></div>
                         <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
@@ -87,19 +89,19 @@
             </div>
         </div>
         <div class="w-fit p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => {%>
-            <div class="border-2 border-black bg-zinc-300 rounded-lg w-fit m-auto p-4">
+            <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white dark:border-white rounded-lg w-fit m-auto p-4">
                 <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-pulse<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
                     <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
                 </div>
                 <div class="m-auto w-fit">
                     <%=elm.title%><% if (elm.subtitle !== "") {%>
-                    <span class="text-gray-700 figure-caption"><%=elm.subtitle%></span><%}%>
+                    <span class="text-gray-700 dark:text-gray-400 figure-caption"><%=elm.subtitle%></span><%}%>
                 </div></a>
                 <div class="w-fit m-auto flex flex-wrap gap-2">
                     <input type="text" class="hidden" name="dismiss_vr" value="<%=elm.uuid%>">
-                    <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Remove"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-x-square-fill align-middle mt-1 m-auto w-fit" id="<%=elm.uuid%>-dismiss" onclick="dismiss('<%=elm.uuid%>')" viewBox="0 0 16 16"><path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/></svg></span>
+                    <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Remove"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-x-square-fill align-middle mt-1 m-auto w-fit hover:cursor-pointer" id="<%=elm.uuid%>-dismiss" onclick="dismiss('<%=elm.uuid%>')" viewBox="0 0 16 16"><path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/></svg></span>
                     <input type="text" class="hidden" name="edit_vr" value="<%=elm.uuid%>">
-                    <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square align-middle mt-1 m-auto w-fit" draggable="false" data-bs-toggle="modal" data-bs-target="#edit-<%=elm.uuid%>" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg></span>
+                    <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square align-middle mt-1 m-auto w-fit hover:cursor-pointer" draggable="false" data-bs-toggle="modal" data-bs-target="#edit-<%=elm.uuid%>" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg></span>
                 </div>
             </div>
             <form id="<%=elm.uuid%>-form">

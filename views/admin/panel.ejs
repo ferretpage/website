@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="<%= theme %>" lang="en" id="html">
 <head>
     <%- include('../meta/index', { title: 'Admin Panel' }); %>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
-    <h1 class="font-bold text-4xl text-center mb-4">Admin Panel</h1>
+    <h1 class="font-bold text-4xl text-center mb-4 dark:text-white">Admin Panel</h1>
     <div class="w-fit m-auto break-words text-lg p-2">
-        <table class="border-2 border-black text-center align-middle break-all">
+        <table class="border-2 border-black text-center align-middle break-all dark:text-white">
             <thead>
               <tr>
                 <th class="p-2">User</th>
@@ -23,20 +25,11 @@
                 <td class="p-2" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Joined: <%= new Date(parseInt(elm.createdAt)).toLocaleString() %>"><% const [name, domain] = elm.email.split('@'); let email = `${name[0]}${new Array(name.length - 1).join('*')}${name[name.length - 1]}@${domain}`; %><%=email%></td>
                 <td class="p-2"><time data-time="<%=elm.createdAt%>"></time></td>
                 <td class="p-2"><%=elm.vrverified%></td>
-                <td class="p-2"><a class="hover:text-current hover:underline" href="/<%=elm.name%>/edit" target="_blank">Edit</a></td>
+                <td class="p-2"><a class="hover:text-current hover:underline" href="/<%=elm.uuid%>/edit" target="_blank">Edit</a></td>
               </tr>
             </tbody><%})%>
         </table>
-    </div>
-    <div class="my-2"></div>
-    <div class="w-fit m-auto break-words text-lg p-2">
-      <div id="errorPaste" class="" role="alert" style="max-width: max-content; margin: auto; margin-bottom: 15px;"></div>
-      <form id="pasteText">
-        <textarea class="pasteBox bg-ayyblue-white-200 dark:bg-ayyblue-black-400 text-ayyblue-black dark:text-ayyblue-white" id="text" name="text" style="height: 350px; width: 500px; overflow: auto;"></textarea>
-        <div class="spacer"></div>
-        <div class="w-fit m-auto"><button type="submit" class="btn btn-primary" style="background-color: rgb(80, 80, 228); border-color: black; border-width: .5px;">Create</button></div>
-      </form>
-    </div>
+    </div><br><br>
     <script defer>
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))

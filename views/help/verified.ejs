@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="<%= theme %>" lang="en" id="html">
 <head>
     <%- include('../meta/index', { title: 'Help - Verified Accounts' }); %>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
-    <h1 class="font-bold text-4xl text-center my-2 mx-2">Verified Accounts</h1>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Verified Accounts</h1>
     <div>
-        <div class="w-fit m-auto p-3 break-words">
+        <div class="w-fit m-auto p-3 break-words dark:text-white">
             <img class="rounded mb-4 w-fit m-auto" src="/public/i/assets/verified-help.png" draggable="false">
             <h2 class="font-bold text-2xl mb-2 text-center">How do I qualify?</h2>
             <h4 class="text-center font-bold">To recieve the Verified badge you must meet our criteria: </h4>

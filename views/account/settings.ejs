@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="<%= theme %>" lang="en" id="html">
 <head>
     <%- include('../meta/index', { title: "Settings" }); %>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
     <div class="text-center p-3">
-        <h1 class="text-3xl font-bold w-fit m-auto align-middle text-center flex">User Settings: <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-sliders2 ml-2 mt-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10.5 1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4H1.5a.5.5 0 0 1 0-1H10V1.5a.5.5 0 0 1 .5-.5ZM12 3.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Zm-6.5 2A.5.5 0 0 1 6 6v1.5h8.5a.5.5 0 0 1 0 1H6V10a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5ZM1 8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2A.5.5 0 0 1 1 8Zm9.5 2a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V13H1.5a.5.5 0 0 1 0-1H10v-1.5a.5.5 0 0 1 .5-.5Zm1.5 2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Z"/></svg></h1>
+        <h1 class="text-3xl font-bold w-fit m-auto align-middle text-center flex dark:text-white">User Settings: <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-sliders2 ml-2 mt-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10.5 1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4H1.5a.5.5 0 0 1 0-1H10V1.5a.5.5 0 0 1 .5-.5ZM12 3.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Zm-6.5 2A.5.5 0 0 1 6 6v1.5h8.5a.5.5 0 0 1 0 1H6V10a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5ZM1 8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2A.5.5 0 0 1 1 8Zm9.5 2a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V13H1.5a.5.5 0 0 1 0-1H10v-1.5a.5.5 0 0 1 .5-.5Zm1.5 2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Z"/></svg></h1>
 
         <div class="my-4"></div>
-        <div class="w-fit p-4 m-auto flex flex-wrap gap-2">
+        <div class="w-fit p-4 m-auto flex flex-wrap gap-2 dark:text-white">
             <form id="emailchange-form" class="border-2 border-black rounded-lg w-fit m-auto p-4">
                 <h4 class="align-middle font-bold mb-3">Change E-Mail Address</h4>
                 <div id="error" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
@@ -45,8 +47,8 @@
                 <button id="settingsPass-BTN" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit">Change Password</button>
             </form>
         </div>
-        <hr style="height: 4.5px;" class="rounded w-1/2 m-auto mb-4">
-        <div class="w-fit p-4 m-auto flex flex-wrap gap-2"><% if (!acc.TFA) {%>
+        <hr style="height: 4.5px;" class="rounded w-1/2 m-auto mb-4 dark:text-white">
+        <div class="w-fit p-4 m-auto flex flex-wrap gap-2 dark:text-white"><% if (!acc.TFA) {%>
             <button class="btn btn-primary align-middle h-min w-min m-auto" data-bs-toggle="modal" data-bs-target="#tfa">Add 2FA <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></button>
             <form id="2fa-form">
               <div class="modal fade" id="tfa" tabindex="-1" aria-labelledby="tfaModalLabel" aria-hidden="true">

@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="<%= theme %>" lang="en" id="html">
 <head>
     <%- include('../meta/index', { title: 'Home' }); %>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
-    <h1 class="font-bold text-4xl text-center my-2 mx-2">All in One.</h1>
-    <div class="w-fit m-auto break-words p-2 text-lg">
-        <hr/>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">All in One.</h1>
+    <div class="w-fit m-auto break-words p-2 text-lg dark:text-white">
+        <hr class="dark:bg-white dark:p-[1px]"/>
         <div class="my-2"></div>
         <p class="text-center font-bold align-middle">Have all your links in one place!</p>
         <p class="text-center font-bold align-middle">Simply claim your unique username by registering today</p>

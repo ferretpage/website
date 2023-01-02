@@ -552,7 +552,7 @@ a.post('/v1/account/edit/avatar', async function (req, res) {
                     b2.uploadFile({
                         uploadUrl: upl,
                         uploadAuthToken: authT,
-                        fileName: file.originalname.split(' ').join('-'),
+                        fileName: randomUUID(),
                         contentLength: file.size,
                         mime: file.mimetype,
                         data: file.buffer,

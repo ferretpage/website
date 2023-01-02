@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="<%= theme %>" lang="en" id="html">
 <head>
     <%- include('../meta/index', { title: 'Terms of Service' }); %>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
     <div class="w-fit m-auto break-words p-2 text-lg">
-        <div class="w-2/4 m-auto break-words">
+        <div class="w-2/4 m-auto break-words dark:text-white">
           <div class="p-2">
             <h1>TERMS OF SERVICE</h1>
             <h2 class="font-bold">LAST UPDATED: <time data-time="<%= new Date(parseInt(date.last_updated)).valueOf() %>"></time></h2>

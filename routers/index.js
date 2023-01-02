@@ -314,11 +314,10 @@ a.get('/avatar/:uuid', async function (req, res) {
 });
 
 a.get('/:user', async function (req, res) {
-    let { theme, session } = req.cookies;
-    if (!theme) theme = "";
-    if (theme == "dark") theme = "dark";
+    let { session } = req.cookies;
     let acc = null;
     let links = null;
+    let theme = "";
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -336,6 +335,7 @@ a.get('/:user', async function (req, res) {
     v.bio = decrypt(v.bio);
     v.url = decrypt(v.url);
     v.location = decrypt(v.location);
+    if (v.pro) theme = "dark";
 
     if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };
     if (acc && !acc.blocked) {
