@@ -25,6 +25,7 @@ const notification = require('../db/account/notification');
 const paste = require('../db/account/paste');
 const misc = require('../db/account/misc');
 const avatarCache = require('./api/avatarCache');
+const bannerCache = require('./api/bannerCache');
 const authCode = require('./api/authCode');
 
 async function removeTOKENS() {
@@ -313,6 +314,63 @@ a.get('/avatar/:uuid', async function (req, res) {
     res.end(Buffer.from(buffer, 'base64'));
 });
 
+a.get('/banner/:uuid.:ext', async function (req, res) {
+    if (bannerCache[req.params.uuid]) {
+        let image = Buffer.from(bannerCache[req.params.uuid].split(',')[1], 'base64');
+        if (req.params.ext && req.params.ext !== bannerCache[req.params.uuid].split('data:')[1].split(';')[0].split('/')[1]) return res.sendStatus(404)
+        res.writeHead(200, {
+            'Content-Type': bannerCache[req.params.uuid].split('data:')[1].split(';')[0],
+            'Content-Length': image.length
+        });
+        return res.end(image);
+    };
+    let u = await user.findOne({ uuid: req.params.uuid }).lean();
+    if (!u) return res.sendStatus(404);
+    if (u && u.blocked) return res.sendStatus(404);
+    if (u.banner == "") return res.sendStatus(404);
+
+    let banner = await (await fetch(u.banner));
+    let buffer = await banner.arrayBuffer();
+
+    data = "data:" + banner.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
+    bannerCache[req.params.uuid] = data;
+
+    if (req.params.ext && req.params.ext !== banner.headers.get('content-type').split('/')[1]) return res.sendStatus(404);
+
+    res.writeHead(200, {
+        'Content-Type': banner.headers.get('content-type'),
+        'Content-Length': banner.headers.get('content-length')
+    });
+    res.end(Buffer.from(buffer, 'base64'));
+});
+
+a.get('/banner/:uuid', async function (req, res) {
+    if (bannerCache[req.params.uuid]) {
+        let image = Buffer.from(bannerCache[req.params.uuid].split(',')[1], 'base64');
+        res.writeHead(200, {
+            'Content-Type': bannerCache[req.params.uuid].split('data:')[1].split(';')[0],
+            'Content-Length': image.length
+        });
+        return res.end(image);
+    };
+    let u = await user.findOne({ uuid: req.params.uuid }).lean();
+    if (!u) return res.sendStatus(404);
+    if (u && u.blocked) return res.sendStatus(404);
+    if (u.banner == "") return res.sendStatus(404);
+
+    let banner = await (await fetch(u.banner));
+    let buffer = await banner.arrayBuffer();
+
+    data = "data:" + banner.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
+    bannerCache[req.params.uuid] = data;
+
+    res.writeHead(200, {
+        'Content-Type': banner.headers.get('content-type'),
+        'Content-Length': banner.headers.get('content-length')
+    });
+    res.end(Buffer.from(buffer, 'base64'));
+});
+
 a.get('/:user', async function (req, res) {
     let { session } = req.cookies;
     let acc = null;
@@ -335,7 +393,7 @@ a.get('/:user', async function (req, res) {
     v.bio = decrypt(v.bio);
     v.url = decrypt(v.url);
     v.location = decrypt(v.location);
-    if (v.pro) theme = "dark";
+    if (v.pro && v.theme == "dark") theme = "dark";
 
     if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };
     if (acc && !acc.blocked) {

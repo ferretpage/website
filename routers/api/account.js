@@ -23,6 +23,7 @@ const short_url = require('../../db/account/url');
 const notification = require('../../db/account/notification');
 const paste = require('../../db/account/paste');
 const avatarCache = require('../api/avatarCache');
+const bannerCache = require('../api/bannerCache');
 const authCode = require('../api/authCode');
 
 const b2 = new B2({
@@ -148,11 +149,11 @@ a.get('/v1/account', async function (req, res) {
     let { session } = req.cookies;
     let { name } = req.query;
 
-    let acc = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0 }).lean();
+    let acc = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, views: 0 }).lean();
     if (!acc) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
 
     if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
-    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0 }).lean();
+    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, views: 0 }).lean();
 
     if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
 
@@ -405,7 +406,7 @@ a.get('/verify/no/:uid', async function (req, res) {
 
 a.post('/v1/account/edit', async function (req, res) {
     let { session } = req.cookies;
-    let { display_vr, name_vr, bio_vr, location_vr } = req.body;
+    let { display_vr, name_vr, bio_vr, location_vr, darktheme_vr } = req.body;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
@@ -414,6 +415,7 @@ a.post('/v1/account/edit', async function (req, res) {
 
     let acc = await user.findOne({ session }).lean();
     let char = /^[a-zA-Z0-9_]+$/;
+    let darktheme = "";
 
     if (!display_vr) {
         await user.updateOne({ session }, { $set: { displayName: acc.name } });
@@ -477,7 +479,8 @@ a.post('/v1/account/edit', async function (req, res) {
     if (location_vr.length < 1) {
         location_vr = "";
     }
-    await user.updateOne({ session }, { $set: { location: encrypt(location_vr) } });
+    if (acc.pro && darktheme_vr == "on") darktheme = "dark";
+    await user.updateOne({ session }, { $set: { location: encrypt(location_vr), theme: darktheme } });
 
     res.json({ OK: true, status: 200, status: `Updated profile` });
 });
@@ -563,6 +566,95 @@ a.post('/v1/account/edit/avatar', async function (req, res) {
 
                 delete avatarCache[u.uuid];
                 res.json({ OK: true, status: 200, text: `Updated avatar` });
+            };
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
+});
+
+a.post('/v1/account/edit/banner', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+        var up = upload.single('banner');
+
+        let u = await user.findOne({ session }).lean();
+
+        up(req, res, async function (e) {
+            if (e) console.log(e);
+            if (e) return res.status(500).json({ OK: false, error: `${e}` });
+            if (!e) {
+                let file = null;
+                let fileExtension = null;
+                let upl = null;
+                let authT = null;
+                if (req.file) file = req.file;
+                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
+                if (fileExtension) fileExtension = fileExtension[0];
+
+                if (!file) {
+                    let current = u.banner;
+
+                    if (current !== "") {
+                        b2.getFileInfo({
+                            fileId: u.banner_id
+                        }).then(async tt => {
+                            let data = tt.data;
+
+                            b2.deleteFileVersion({
+                                fileId: data.fileId,
+                                fileName: data.fileName
+                            });
+                        });
+                    };
+                    delete bannerCache[u.uuid];
+                    await user.updateOne({ session }, { $set: { banner: "", banner_id: "" } });
+                    return res.json({ OK: true, status: 200, text: `Updated banner` });
+                }
+
+                if (file && file.mimetype !== "image/gif") {
+                    await sharp(file.buffer).resize({ width: 350, height: 150 }).toBuffer().then(data => {
+                        if (data) file.buffer = data; file.size = data.length;
+                    });
+                };
+
+                if (u.banner !== "") {
+                    b2.getFileInfo({
+                        fileId: u.banner_id
+                    }).then(async tt => {
+                        let data = tt.data
+                        b2.deleteFileVersion({
+                            fileId: data.fileId,
+                            fileName: data.fileName
+                        });
+                    });
+                };
+
+                b2.getUploadUrl({
+                    bucketId: 'd5afb20446dd61128b590419'
+                }).then(tt => {
+                    upl = tt.data.uploadUrl; 
+                    authT = tt.data.authorizationToken;
+
+                    b2.uploadFile({
+                        uploadUrl: upl,
+                        uploadAuthToken: authT,
+                        fileName: randomUUID(),
+                        contentLength: file.size,
+                        mime: file.mimetype,
+                        data: file.buffer,
+                        hash: '',
+                        onUploadProgress: (event) => {}
+                    }).then(async fin => { await user.updateOne({ session }, { $set: { banner: `https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`, banner_id: fin.data.fileId } }) });
+                });
+
+                delete bannerCache[u.uuid];
+                res.json({ OK: true, status: 200, text: `Updated banner` });
             };
         });
     } catch (e) {
@@ -1058,6 +1150,32 @@ a.get('/admin/reserved', async function (req, res) {
         });
 
         res.json({ OK: true, invite: decrypt(is.invite), encrpyted: is.invite });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.get('/admin/remove_views/:name', async function (req, res) {
+    let { session } = req.cookies;
+    let { unix } = req.query;
+    let { name } = req.params;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!unix || !name) return res.sendStatus(404);
+
+        let u = await user.findOne({ nameToFind: name.toUpperCase() }).lean();
+        if (!u) return res.status(404).json({ OK: false, status: 404, error: `User not found` });
+        if (u.blocked) return res.status(404).json({ OK: false, status: 403, error: `User is blocked` });
+
+        u.views.forEach(async elm => {
+            if (unix < new Date(elm.date).valueOf()) await user.updateOne({ uuid: u.uuid }, { $pull: { views: { uuid: elm.uuid } } });
+        });
+
+        res.json({ OK: true, status: 200 });
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, error: `${e}` });

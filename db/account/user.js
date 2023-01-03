@@ -49,6 +49,7 @@ const user = mongo.Schema({
   linklimit: String,
   url: String,
   location: String,
+  theme: String,
   nameHistory: Array,
   verified: Boolean,
   vrverified: Boolean,

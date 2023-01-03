@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html class="<%= theme %>" lang="en" id="html">
 <head>
-    <%- include('../meta/index', { title: 'Dashboard' }); %>
     <link rel="icon" href="/public/favicon.ico">
     <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: 'Dashboard' }); %>
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
     <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard</h1>
-    <div class="w-fit m-auto break-words p-2 text-lg">
-        <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full m-auto border-[2px] border-black mb-4" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
-        <hr class="w-[35%] m-auto dark:text-white dark:p-[1px]"/>
+    <div class="w-fit m-auto break-words p-2 text-lg"><% if (acc.pro) {%>
+        <div class="w-fit m-auto" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= acc.uuid %>" class="m-auto rounded object-fill w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
+        <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-4 <% if (acc.pro !== '') {%> -mt-[85px]<%}%>" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
+        <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
         <div class="hidden" role="alert" id="error"></div>
         <div class="my-2"></div><% if (acc.verified) {%>
         <form id="mainUpdate-form" class="p-1 m-auto w-fit">
@@ -30,9 +31,15 @@
                 <div class="form-floating mb-2 break-words">
                     <input type="text" class="form-control" placeholder="Update your bio" id="updateBio" name="bio_vr" value="<%=acc.bio%>" autocomplete="off"></input>
                     <label for="updateBio">Bio</label>
-                </div>
+                </div><% if (acc.pro) {%>
+                <div class="mt-3">
+                    <div class="form-check form-switch w-fit m-auto"><% if (acc.theme !== "dark") {%>
+                        <input class="form-check-input" type="checkbox" role="switch" id="updateTheme" name="darktheme_vr"><%} if (acc.theme == "dark") {%>
+                        <input class="form-check-input" type="checkbox" role="switch" id="updateTheme" name="darktheme_vr" checked><%}%>
+                        <label class="form-check-label dark:text-white" for="updateTheme">Dark mode</label>
+                    </div>
+                </div><%}%>
             </div>
-            <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
             <div class="w-min m-auto mt-2">
                 <button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Submit</button>
                 <div class="my-2"></div>
@@ -203,6 +210,37 @@
               </div>
             </div>
           </form>
+          <form id="banner-form">
+            <div class="modal fade" id="changeBANNER" tabindex="-1" aria-labelledby="changeBANNERModalLabel" aria-hidden="true">
+                <div class="modal-dialog my-8 md:my-2">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title text-black" id="editModalLabel">Edit Banner <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                    <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                  </div>
+                  <div class="modal-body text-black">
+                    <div id="errorBn" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                    <div class="form-row align-items-center">
+                      <div class="form-row align-items-center">
+                        <div class="col-auto" style="width: 75%; margin: auto;">
+                          <label class="sr-only" for="BannerFile">Banner</label>
+                          <input type="file" class="form-control" id="BannerFile" name="banner" accept="image/*">
+                          <div class="my-1"></div>
+                        </div>
+                      </div>
+                      <div class="hidden" id="BNspinner" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Save changes</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
     </div>
     <script defer>
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
@@ -303,7 +341,7 @@
             let dd = new FileReader();
             formData.append("pfp", d.files[0]);
 
-            av.setAttribute('class', 'spinner-border');
+            av.setAttribute('class', 'm-auto spinner-border');
             fetch('/api/v1/account/edit/avatar', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
               $('#errorAv').text('');
               $('#error').toggleClass(false);
@@ -320,7 +358,33 @@
               $('#errorAv').text(e);
               $('#errorAv').addClass('alert alert-danger my-1');
             });
-        });<% if (links) {%>
+        });<% if (acc.pro) {%>
+        $('#banner-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new FormData();
+            let d = document.getElementById('BannerFile');
+            let av = document.getElementById('BNspinner');
+            let dd = new FileReader();
+            formData.append("banner", d.files[0]);
+
+            av.setAttribute('class', 'm-auto spinner-border');
+            fetch('/api/v1/account/edit/banner', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+              $('#errorBn').text('');
+              $('#error').toggleClass(false);
+              av.setAttribute('class', 'hidden');
+              if (w.OK) {
+                $('#errorBn').text(w.text);
+                $('#errorBn').addClass('alert alert-success my-1');
+              } else {
+                $('#errorBn').text(w.error);
+                $('#errorBn').addClass('alert alert-danger my-1');
+              }
+            }).catch(e => {
+              console.log(e);
+              $('#errorBn').text(e);
+              $('#errorBn').addClass('alert alert-danger my-1');
+            });
+        });<%}%><% if (links) {%>
             function dismiss(uuid) {
                 fetch(`/api/v1/remove_url/${uuid}`, { method: 'get' }).then((r)=>r.json()).then((w)=>{
                     $('#error').text('');
