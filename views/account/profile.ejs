@@ -3,12 +3,13 @@
 <head>
     <link rel="icon" href="https://ferret.page/avatar/<%=view.uuid%>">
     <link rel="icon" rel="apple-touch-icon" href="https://ferret.page/avatar/<%=view.uuid%>">
-    <%- include('../meta/index', { title: view.name+"'s Profile" }); %>
 
     <meta property="twitter:title" content="<%=view.name%>'s Profile | Ferret">
     <meta property="twitter:description" content="<% if (view.bio !== '') {%><%=view.bio%><%} else {%>This user has not set a bio yet<%}%>">
     <meta property="twitter:image" content="https://ferret.page/avatar/<%=view.uuid%>">
     <meta property="twitter:url" content="https://ferret.page/<%=view.name%>">
+    
+    <%- include('../meta/index', { title: view.name+"'s Profile" }); %>
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <div id="background-image-wrapper" style="background-image: url('/banner/<%=view.uuid%>'); background-repeat: no-repeat; background-size: cover; background-position: center;">

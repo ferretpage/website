@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: 'Help - E-Mail Verification' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">E-Mail Verification</h1>
+    <div>
+        <div class="w-fit m-auto p-3 break-words dark:text-white">
+            <img class="rounded mb-4 w-fit m-auto" src="/public/i/assets/mailverify-help.png" draggable="false">
+            <h4 class="text-center">When registering your bio link you will need to verify the email address that was used to sign up.</h4>
+            <h4 class="text-center">This is to make sure that you are real, if you have any issues with the verification process then please contact us at <a class="alert-link hover:underline" href="mailto:support@ferret.page">support@ferret.page</a></h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+            <h2 class="font-bold text-2xl mb-2 text-center">I didn't receieve a code: </h2>
+            <h4 class="text-center">First make sure that you checked all your inboxes, including the spam folder. If you still don't see it then you may request a new one.</h4>
+            <h4 class="text-center">If you want a new code please click <a class="alert-link hover:underline" href="#">here</a>.</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+            <h2 class="font-bold text-2xl mb-2 text-center">I misspelled my E-Mail address: </h2>
+            <h4 class="text-center">If there is an error in your email address then you will need to contact us at <a class="alert-link hover:underline" href="mailto:support@ferret.page">support@ferret.page</a>.</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+        </div>
+    </div><br>
+</body>
+<script defer>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+</html>

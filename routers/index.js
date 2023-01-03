@@ -114,6 +114,7 @@ a.get('/dashboard', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
     let links = null;
+    let code = null;
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -126,12 +127,13 @@ a.get('/dashboard', async function (req, res) {
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
     if (links) links = JSON.parse(links);
+    if (req.query.code) code = req.query.code.toUpperCase();
 
     qrcode.toDataURL(`https://ferret.page/${acc.name}`, function (err, url) {
         let qr = null;
         if (url) qr = url;
 
-        res.render('account/dashboard', { theme, acc, links, qr });
+        res.render('account/dashboard', { theme, acc, links, qr, code });
     });
 });
 

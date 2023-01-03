@@ -269,7 +269,7 @@ a.post('/v1/register', async function (req, res) {
             from: '"no-reply@ferret.page" <no-reply@ferret.page>',
             to: `${email_VR.toLowerCase()}`,
             subject: "Verify User Account",
-            html: `<html><h4>Welcome to Ferret!</h4></br><h3>Here is your verification code: ${confT}</h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${uuid}?code=${confT}</a></p></html>`, // html body
+            html: `<html><h4>Welcome to Ferret!</h4></br><h3>Here is your verification code: <a href="http://${req.hostname}/dashboard?code=${confT}" target="_blank">${confT}</a></h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${uuid}?code=${confT}</a></p></html>`, // html body
         };
     
         const info = await transporter.sendMail(msg);
@@ -360,7 +360,7 @@ a.post('/v1/verify/:uid', async function (req, res) {
                 from: '"no-reply@had.contact" <no-reply@had.contact>',
                 to: `${vv.email.toLowerCase()}`,
                 subject: "Verify User Account",
-                html: `<html><h4>Here's your new code!</h4></br><h3>Here is your verification code: ${confT}</h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}</a></p></html>`, // html body
+                html: `<html><h4>Here's your new code!</h4></br><h3>Here is your verification code: <a href="http://${req.hostname}/dashboard?code=${confT}" target="_blank">${confT}</a></h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}</a></p></html>`, // html body
             };
             await verify_email.deleteOne({ uuid: u.uuid, token: c, used: false });
             const info = await transporter.sendMail(msg);
@@ -368,7 +368,7 @@ a.post('/v1/verify/:uid', async function (req, res) {
             return
         };
         await verify_email.updateOne({ uuid: u.uuid, used: false }, { $set: { used: true } });
-        await user.updateOne({ session }, { $set: { verified: true, flag: 40 } });
+        await user.updateOne({ session }, { $set: { verified: true } });
 
         if (!req.query.json) return res.redirect('/dashboard');
         res.json({ OK: true, status: 200, text: "Verified user" });
@@ -745,7 +745,7 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
 
     if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
 
-    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), order: parseInt(order_vr), link: encrypt(url_vr), highlight } });
+    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), thumbnail: encrypt(`https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128}`), order: parseInt(order_vr), link: encrypt(url_vr), highlight } });
     res.json({ OK: true, status: 200, text: `Updated link` });
 });
 
