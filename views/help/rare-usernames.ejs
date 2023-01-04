@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: 'Help - Rare Usernames' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Rare Usernames</h1>
+    <div>
+        <div class="w-fit m-auto p-3 break-words dark:text-white">
+            <img class="rounded mb-4 w-fit m-auto" src="/public/i/assets/rare-help.png" draggable="false">
+            <h2 class="font-bold text-2xl mb-2 text-center">How do I qualify?</h2>
+            <h4 class="text-center font-bold">To recieve the Rare username badge you must meet our criteria: </h4>
+            <h4 class="text-center mt-2">1. Must not be impersonating a brand or any notable person</h4>
+            <h4 class="text-center">2. Display name must include your username</h4>
+            <h4 class="text-center">3. Have a OG/Rare username (ex. Name, Dictionary word, Four letters or less)</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+            <h2 class="font-bold text-2xl mb-2 text-center">Information: </h2>
+            <h4 class="text-center">You can contact our support team if you believe you meet this criteria. <a class="alert-link hover:underline" href="mailto:support@ferret.page">support@ferret.page</a></h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+        </div>
+    </div><br>
+</body>
+<script defer>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+</html>

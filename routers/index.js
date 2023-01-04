@@ -228,7 +228,12 @@ a.get('/help', async function (req, res) {
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
 
-    res.render(`home/help`, { theme, acc });
+    let article = [];
+    fs.readdirSync(path.join(__dirname, `../views/help`)).forEach(file => {
+        article.push(file.split('.')[0]);
+    });;
+
+    res.render(`home/help`, { theme, acc, article });
 });
 
 a.get('/help/:id', async function (req, res) {

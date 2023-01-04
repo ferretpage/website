@@ -324,13 +324,45 @@ a.post('/v1/signin', async function (req, res) {
 a.post('/v1/verify/:uid', async function (req, res) {
     let { session } = req.cookies;
     let { verifcode } = req.body;
-    if (!verifcode) return res.status(403).json({ OK: false, error: `Enter code to continue` });
+    if (!verifcode && !req.query.resend) return res.status(403).json({ OK: false, error: `Enter code to continue` });
 
     try {
         let u = await user.findOne({ session }).lean();
-        let c = verifcode.toUpperCase();
+        let c = null
+        if (verifcode) c = verifcode.toUpperCase();
         if (u.verified) return res.status(403).json({ OK: false, error: `Account is already verified` });
         let token = Math.random().toString(32).substring(8);
+        if (req.query.resend && req.query.resend == "true") {
+            let confT = Math.random().toString(32).substring(4).toUpperCase();
+            await new verify_email({
+                uuid: u.uuid,
+                email: encrypt(u.email),
+                token: confT,
+                used: false,
+                valid: true,
+                date: Date.now()
+            }).save();
+        
+            let transporter = nodemailer.createTransport({
+                host: "webserver4.pebblehost.com",
+                port: 465,
+                secure: true,
+                auth: {
+                    user: "no-reply@ferret.page",
+                    pass: `${process.env.PASSWORD}`,
+                },
+            });
+        
+            let msg = {
+                from: '"no-reply@ferret.page" <no-reply@ferret.page>',
+                to: `${decrypt(u.email).toLowerCase()}`,
+                subject: "Verify User Account",
+                html: `<html><h4>Here's your new code!</h4></br><h3>Here is your verification code: <a href="http://${req.hostname}/dashboard?code=${confT}" target="_blank">${confT}</a></h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${u.uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${u.uuid}?code=${confT}</a></p></html>`, // html body
+            };
+            await verify_email.deleteOne({ uuid: u.uuid, used: false });
+            const info = await transporter.sendMail(msg);
+            return res.status(404).json({ error: `Code Expired` });
+        };
         let vv = await verify_email.findOne({ uuid: u.uuid, token: c, used: false }).lean();
         if (!vv) return res.status(403).json({ OK: false, error: `Invalid code` });
         if (vv.token.toUpperCase() !== c) return res.status(403).json({ OK: false, error: `Invalid code` });
@@ -351,20 +383,20 @@ a.post('/v1/verify/:uid', async function (req, res) {
                 port: 465,
                 secure: true,
                 auth: {
-                    user: "no-reply@had.contact",
+                    user: "no-reply@ferret.page",
                     pass: `${process.env.PASSWORD}`,
                 },
             });
         
             let msg = {
-                from: '"no-reply@had.contact" <no-reply@had.contact>',
+                from: '"no-reply@ferret.page" <no-reply@ferret.page>',
                 to: `${vv.email.toLowerCase()}`,
                 subject: "Verify User Account",
                 html: `<html><h4>Here's your new code!</h4></br><h3>Here is your verification code: <a href="http://${req.hostname}/dashboard?code=${confT}" target="_blank">${confT}</a></h3><br><br><p>If you did not request to verify this account please click this (Also note that this will remove the account from our website!): <br><a href="http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}" target="_blank">http://${req.hostname}/api/verify/no/${vv.uuid}?code=${confT}</a></p></html>`, // html body
             };
             await verify_email.deleteOne({ uuid: u.uuid, token: c, used: false });
             const info = await transporter.sendMail(msg);
-            res.status(404).json({ error: `Code Expired` });
+            res.status(404).json({ error: `Resent code` });
             return
         };
         await verify_email.updateOne({ uuid: u.uuid, used: false }, { $set: { used: true } });
@@ -678,13 +710,78 @@ a.post('/v1/create_url', async function (req, res) {
     let u = await user.findOne({ session }).lean();
     let token = Math.random().toString(32).substring(8);
     let highlight = false;
+    let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`;
 
     let checkurl = await short_url.find({ author: u._id, blocked: false }).lean();
     if (checkurl && checkurl.length > 0) {
         if (checkurl.length > parseInt(u.linklimit)) return res.status(403).json({ OK: false, status: 403, error: `Upgrade plan to add more links` });
     };
 
+    if (req.body.ico) req.file = req.body.ico;
     if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
+    if (url_vr.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
+    if (url_vr.includes('twitter.com')) thumb = "https://ferret.page/public/twitter_normal.png";
+
+    if (req.file) {
+        var up = upload.single('ico');
+
+        up(req, res, async function (e) {
+            if (e) console.log(e);
+            if (e) return res.status(500).json({ OK: false, error: `${e}` });
+            if (!e) {
+                let file = null;
+                let fileExtension = null;
+                let upl = null;
+                let authT = null;
+                if (req.file) file = req.file;
+                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
+                if (fileExtension) fileExtension = fileExtension[0];
+
+                if (file && file.mimetype !== "image/gif") {
+                    await sharp(file.buffer).resize({ width: 128, height: 128 }).toBuffer().then(data => {
+                        if (data) file.buffer = data; file.size = data.length;
+                    });
+                };
+
+                b2.getUploadUrl({
+                    bucketId: 'd5afb20446dd61128b590419'
+                }).then(tt => {
+                    upl = tt.data.uploadUrl; 
+                    authT = tt.data.authorizationToken;
+
+                    b2.uploadFile({
+                        uploadUrl: upl,
+                        uploadAuthToken: authT,
+                        fileName: randomUUID(),
+                        contentLength: file.size,
+                        mime: file.mimetype,
+                        data: file.buffer,
+                        hash: '',
+                        onUploadProgress: (event) => {}
+                    }).then(async fin => {
+                        await new short_url({
+                            author: u._id,
+                            link: encrypt(url_vr),
+                            id: token,
+                            title: encrypt(title_vr),
+                            subtitle: encrypt(subtitle_vr),
+                            thumbnail: encrypt(`https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`),
+                            order: "99",
+                            clicks: [],
+                            highlight,
+                            hidden: false,
+                            blocked: false,
+                            blocked_reason: "",
+                            date: Date.now(),
+                            uuid: randomUUID()
+                        }).save();
+                    });
+                });
+
+                return res.json({ OK: true, status: 200, text: `Created link` });
+            };
+        });
+    };
 
     await new short_url({
         author: u._id,
@@ -692,7 +789,7 @@ a.post('/v1/create_url', async function (req, res) {
         id: token,
         title: encrypt(title_vr),
         subtitle: encrypt(subtitle_vr),
-        thumbnail: encrypt(`https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`),
+        thumbnail: encrypt(thumb),
         order: "99",
         clicks: [],
         highlight,
@@ -734,6 +831,7 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
     let title = title_vr;
     let stitle = subtitle_vr;
     let highlight = false
+    let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`;
 
     if (!title) title = decrypt(urls.title);
     if (!url_vr) url_vr = decrypt(urls.link);
@@ -744,8 +842,10 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
     if (!url) return res.status(403).json({ OK: false, status: 403, error: `Invalid URL` });
 
     if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
+    if (url_vr.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
+    if (url_vr.includes('twitter.com')) thumb = "https://ferret.page/public/i/assets/twitter_normal.png";
 
-    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), thumbnail: encrypt(`https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128}`), order: parseInt(order_vr), link: encrypt(url_vr), highlight } });
+    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), thumbnail: encrypt(thumb), order: parseInt(order_vr), link: encrypt(url_vr), highlight } });
     res.json({ OK: true, status: 200, text: `Updated link` });
 });
 
