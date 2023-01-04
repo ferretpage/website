@@ -153,7 +153,7 @@ a.get('/v1/account', async function (req, res) {
     if (!acc) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
 
     if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
-    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, views: 0 }).lean();
+    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
 
     if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
 
@@ -163,9 +163,22 @@ a.get('/v1/account', async function (req, res) {
     s.inactive = false;
     if (Date.now() - 2.234e+10 > s.last_login) s.inactive = true;
 
-    s.last_login = encrypt(s.last_login);
+    delete s.last_login;
 
     let result = { OK: true, status: 200, account: s };
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(result, null, 2.5));
+});
+
+a.get('/v1/pronouns', async function (req, res) {
+    let { name } = req.query;
+
+    if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
+
+    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+
+    let result = { OK: true, status: 200, pronoun: s.pronouns };
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(result, null, 2.5));
 });
@@ -438,7 +451,7 @@ a.get('/verify/no/:uid', async function (req, res) {
 
 a.post('/v1/account/edit', async function (req, res) {
     let { session } = req.cookies;
-    let { display_vr, name_vr, bio_vr, location_vr, darktheme_vr } = req.body;
+    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr } = req.body;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
@@ -503,16 +516,19 @@ a.post('/v1/account/edit', async function (req, res) {
     };
 
     if (bio_vr && bio_vr.length > 95) return res.status(400).json({ OK: false, status: 400, error: `Bio must be less than 96 characters` });
-
-    await user.updateOne({ session }, { $set: { bio: encrypt(bio_vr) } });
-
     if (location_vr.length > 57) return res.status(400).json({ OK: false, status: 400, error: `Location must be less than 58 characters` });
+
+    let pronoun = { hh: "he/him", hi: "he/it", hs: "he/she", ht: "he/they", ih: "it/him", ii: "it/its", is: "it/she", it: "it/they", shh: "she/he", sh: "she/her", si: "she/it", st: "she/they", th: "they/he", ti: "they/it", ts: "they/she", tt: "they/them", any: "Any pronouns", other: "Other pronouns", ask: "Please ask", avoid: "Avoid pronouns" };
+    if (!pronouns_vr) pronoun = null;
+    if (pronouns_vr == "Unspecified...") pronoun = null;
+    if (pronouns_vr && pronoun && !pronoun[pronouns_vr.toLowerCase()]) pronoun = null;
+    if (pronouns_vr && pronoun && pronoun[pronouns_vr.toLowerCase()]) pronoun = pronoun[pronouns_vr.toLowerCase()];
 
     if (location_vr.length < 1) {
         location_vr = "";
     }
     if (acc.pro && darktheme_vr == "on") darktheme = "dark";
-    await user.updateOne({ session }, { $set: { location: encrypt(location_vr), theme: darktheme } });
+    await user.updateOne({ session }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme } });
 
     res.json({ OK: true, status: 200, status: `Updated profile` });
 });

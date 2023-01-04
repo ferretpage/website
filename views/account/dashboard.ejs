@@ -16,7 +16,7 @@
           <div class="hidden" role="alert" id="error"></div>
           <div class="my-2"></div><% if (acc.verified) {%>
           <form id="mainUpdate-form" class="p-1 m-auto w-fit">
-              <div class="flex flex-auto gap-2">
+              <div class="flex flex-auto gap-2" id="mainSett">
                   <div class="form-floating mb-2 break-words">
                       <input type="text" class="form-control" placeholder="Update your display name" id="updateDisplay" name="display_vr" value="<%=acc.displayName%>" autocomplete="off"></input>
                       <label for="updateDisplay">Display</label>
@@ -41,10 +41,25 @@
                       </div>
                   </div><%}%>
               </div>
+              <div class="hidden" id="miscSett">
+                <div class="form-floating mb-2 break-words">
+                  <div class="input-group mb-3">
+                    <label class="input-group-text" for="pronounGroup">Pronouns</label>
+                    <select class="form-select" id="pronounGroup" name="pronouns_vr">
+                      <option>Unspecified...</option><% let pronoun = [ "hh", "hi", "hs", "ht", "ih", "ii", "is", "it", "shh", "sh", "si", "st", "th", "ti", "ts", "tt", "any", "other", "ask", "avoid" ]; pronoun.forEach((elm) => {%><% let short; if (elm == 'hh') { short = 'he/him' }; if (elm == 'hi') { short = 'he/it' }; if (elm == 'hs') { short = 'he/she' }; if (elm == 'ht') { short = 'he/they' }; if (elm == 'ih') { short = 'it/him' }; if (elm == 'ii') { short = 'it/its' }; if (elm == 'is') { short = 'it/she' }; if (elm == 'it') { short = 'it/they' }; if (elm == 'shh') { short = 'she/he' }; if (elm == 'sh') { short = 'she/her' }; if (elm == 'si') { short = 'she/it' }; if (elm == 'st') { short = 'she/they' }; if (elm == 'th') { short = 'they/he' }; if (elm == 'ti') { short = 'they/it' }; if (elm == 'ts') { short = 'they/she' }; if (elm == 'tt') { short = 'they/them' }; if (elm == 'any') { short = 'Any pronouns' }; if (elm == 'other') { short = 'Other pronouns' }; if (elm == 'ask') { short = 'Please ask' }; if (elm == 'avoid') { short = 'Avoid pronouns' }; if (short !== acc.pronouns) {%>
+                      <option value="<%=elm%>"><%=short%></option><%} else {%>
+                      <option value="<%=elm%>" selected><% if (elm == 'hh') { elm = 'he/him' }; if (elm == 'hi') { elm = 'he/it' }; if (elm == 'hs') { elm = 'he/she' }; if (elm == 'ht') { elm = 'he/they' }; if (elm == 'ih') { elm = 'it/him' }; if (elm == 'ii') { elm = 'it/its' }; if (elm == 'is') { elm = 'it/she' }; if (elm == 'it') { elm = 'it/they' }; if (elm == 'shh') { elm = 'she/he' }; if (elm == 'sh') { elm = 'she/her' }; if (elm == 'si') { elm = 'she/it' }; if (elm == 'st') { elm = 'she/they' }; if (elm == 'th') { elm = 'they/he' }; if (elm == 'ti') { elm = 'they/it' }; if (elm == 'ts') { elm = 'they/she' }; if (elm == 'tt') { elm = 'they/them' }; if (elm == 'any') { elm = 'Any pronouns' }; if (elm == 'other') { elm = 'Other pronouns' }; if (elm == 'ask') { elm = 'Ask for my pronouns' }; if (elm == 'avoid') { elm = 'Avoid pronouns, use my name' }; %><%=elm%></option><%}})%>
+                    </select>
+                  </div>
+              </div>
+              </div>
               <div class="w-min m-auto mt-2">
+                <div class="flex flex-auto gap-2">
+                  <button type="button" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" onclick="miscDisplay()" id="misc_button">Other</button>
                   <button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Submit</button>
-                  <div class="my-2"></div>
-                  <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
+                </div>
+                <div class="my-2"></div>
+                <img id="loading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
               </div>
           </form>
           <div class="my-3"></div>
@@ -251,8 +266,12 @@
         <div class="w-fit m-auto break-words p-2 text-lg text-center dark:text-white">
             <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12">
                 <img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-2 bg-zinc-300" style="margin: auto; margin-top: -45px;" draggable="false">
-                <h2 class="font-bold text-4xl inline-flex"><%= acc.displayName %><% if (acc.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (acc.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (acc.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2><% if (acc.location && acc.location !== "" && acc.location !== " ") {%>
-                <h4 class="font-bold text-xl text-gray-600 dark:text-gray-400 flex w-fit m-auto"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="gray" class="bi bi-geo-alt-fill mt-[6.5px]" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><%=acc.location%></h4><%}%><% if (acc.bio && acc.bio !== "" && acc.bio !== " ") {%>
+                <h2 class="font-bold text-4xl inline-flex"><%= acc.displayName %><% if (acc.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (acc.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (acc.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2>
+                <div class="flex flex-wrap gap-2"><% if (acc.location && acc.location !== "" && acc.location !== " ") {%>
+                  <h4 class="font-bold text-xl text-gray-600 dark:text-gray-400 flex w-fit m-auto"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="gray" class="bi bi-geo-alt-fill mt-[6.5px]" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><%=acc.location%></h4>
+                <%}%><% if (acc.pronouns && acc.pronouns !== "") {%>
+                  <h4 class="font-bold text-xl text-gray-600 dark:text-gray-400 flex w-fit m-auto"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="gray" class="bi bi-geo-alt-fill mt-[6.5px]" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><%=acc.pronouns%></h4>
+                <%}%></div><% if (acc.bio && acc.bio !== "" && acc.bio !== " ") {%>
                 <h4 class="font-bold text-2xl"><%=acc.bio%></h4><%}%>
                 <hr class="mt-2"/>
             </div>
@@ -283,11 +302,28 @@
             
             if (change == "hidden") {
               edit.setAttribute('class', 'hidden');
-              preview.setAttribute('class', 'w-fit m-auto');
+              preview.setAttribute('class', 'w-fit m-auto');<% if (acc && acc.pro && acc.theme == "dark") {%>
+              document.getElementById('html').setAttribute('class', 'dark')<%}%>
             };
             if (change !== "hidden") {
               preview.setAttribute('class', 'hidden');
-              edit.setAttribute('class', 'w-fit m-auto');
+              edit.setAttribute('class', 'w-fit m-auto');<% if (acc && acc.pro && acc.theme == "dark") {%>
+              document.getElementById('html').setAttribute('class', '')<%}%>
+            };
+        };
+
+        function miscDisplay() {
+            let main = document.getElementById('mainSett');
+            let misc = document.getElementById('miscSett');
+            let change = misc.getAttribute('class');
+            
+            if (change == "hidden") {
+              main.setAttribute('class', 'hidden');
+              misc.setAttribute('class', 'flex flex-auto gap-2');
+            };
+            if (change !== "hidden") {
+              misc.setAttribute('class', 'hidden');
+              main.setAttribute('class', 'flex flex-auto gap-2');
             };
         };
 
