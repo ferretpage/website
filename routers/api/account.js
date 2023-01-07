@@ -183,6 +183,22 @@ a.get('/v1/pronouns', async function (req, res) {
     res.send(JSON.stringify(result, null, 2.5));
 });
 
+a.get('/v1/inactive/:name', async function (req, res) {
+    let { name } = req.params;
+
+    if (!name) return res.status(404).json({ OK: false, status: 404, error: `Invalid username` });
+    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
+
+    if (!s) return res.status(404).json({ OK: false, status: 404, error: `Invalid username` });
+
+    s.inactive = false;
+    if (Date.now() - 2.234e+10 > s.last_login) s.inactive = true;
+
+    let result = { OK: true, status: 200, inactive: s.inactive };
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(result, null, 2.5));
+});
+
 a.post('/v1/register', async function (req, res) {
     try {
         let { session } = req.cookies;
