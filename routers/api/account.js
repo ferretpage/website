@@ -217,6 +217,9 @@ a.post('/v1/register', async function (req, res) {
         let uuid = randomUUID();
         let api_key = randomUUID();
         let username = Username_VR;
+
+        if (username.length < 2) return res.status(400).json({ OK: false, status: 400, error: `Username must be greater than 2 characters` });
+        if (username.length > 15) return res.status(400).json({ OK: false, status: 400, error: `Username must be less than 16 characters` });
     
         let confT = Math.random().toString(32).substring(4).toUpperCase();
         let filter = await dbMisc.findOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f" }, { reserved: 1, blocked: 1, _id: 0 }).lean();
