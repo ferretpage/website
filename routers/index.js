@@ -259,7 +259,11 @@ a.get('/l/:uuid', async function (req, res) {
     if (s && !s.blocked) loggedin = s._id;
 
     if (data && data.author) {
-        await short_url.updateOne({ id: req.params.uuid }, { $push: { clicks: [{ user: loggedin, ip: encrypt(req.headers['x-forwarded-for']), uuid: randomUUID(), date: Date.now() }] } })
+        await short_url.updateOne({ id: req.params.uuid }, { $push: { clicks: [{ user: loggedin, ip: encrypt(req.headers['x-forwarded-for']), uuid: randomUUID(), date: Date.now() }] } });
+
+        if (data.limitClicks && data.clicks.length+1 > data.limitClick) {
+            return res.redirect(`/${data.author.name.toLowerCase()}`);
+        };
     };
 
     res.redirect(decrypt(data.link));
@@ -416,6 +420,45 @@ a.get('/:user', async function (req, res) {
     }
 
     res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links });
+});
+
+a.get('/:uuid/edit', async function (req, res) {
+    let { session } = req.cookies;
+    let acc = null;
+    let links = null;
+    let theme = "";
+
+    if (session) {
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
+        if (auth && auth.status == 403) return res.redirect('/');
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
+    };
+    if (acc && acc.blocked) return res.redirect('/help/suspended-accounts');
+    if (!acc.staff) return res.redirect('/');
+    let v = await user.findOne({ uuid: req.params.uuid }).lean();
+
+    if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc });
+    let badges = await badge.findOne({ "users.user": v._id, "users.disabled": false }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+
+    v.apiKey = decrypt(v.apiKey);
+    v.bio = decrypt(v.bio);
+    v.url = decrypt(v.url);
+    v.location = decrypt(v.location);
+
+    if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };
+    if (acc && !acc.blocked) {
+        await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: acc._id, uuid: randomUUID(), date: Date.now() }] } });
+    }
+
+    if (!links) {
+        links = await short_url.find({ author: v._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+
+        if (links && links.length > 0) {
+            links.forEach((elm) => { elm.link = decrypt(elm.link); elm.title = decrypt(elm.title); elm.subtitle = decrypt(elm.subtitle); elm.thumbnail = decrypt(elm.thumbnail) });
+        }
+    }
+
+    res.render('admin/edit', { theme: theme, acc, view: v, badge: badges, links });
 });
 
 module.exports = a;

@@ -8,6 +8,8 @@ const short_url = mongo.Schema({
   subtitle: String,
   thumbnail: String,
   highlight: Boolean,
+  limitClicks: Boolean,
+  limitClick: String,
   clicks: Array,
   order: String,
   hidden: Boolean,

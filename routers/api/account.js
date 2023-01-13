@@ -147,15 +147,17 @@ a.get('/v1/uuid', async function (req, res) {
 
 a.get('/v1/account', async function (req, res) {
     let { session } = req.cookies;
-    let { name } = req.query;
+    let { name, uuid } = req.query;
 
     let acc = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, views: 0 }).lean();
     if (!acc) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
 
-    if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
-    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
+    if (!name && !uuid) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
+    let s;
+    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
+    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
 
-    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
 
     s.bio = decrypt(s.bio);
     s.url = decrypt(s.url);
@@ -189,6 +191,14 @@ a.get('/v1/inactive/:name', async function (req, res) {
     if (!name) return res.status(404).json({ OK: false, status: 404, error: `Invalid username` });
     let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
 
+    if (name.toLowerCase() == "help") {
+        s = await user.findOne({ nameToFind: "FERRET" }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
+        s.inactive = true;
+    
+        let result = { OK: true, status: 200, inactive: s.inactive };
+        res.setHeader('Content-Type', 'application/json');
+        return res.send(JSON.stringify(result, null, 2.5));
+    };
     if (!s) return res.status(404).json({ OK: false, status: 404, error: `Invalid username` });
 
     s.inactive = false;
@@ -210,7 +220,7 @@ a.post('/v1/register', async function (req, res) {
         if (password_VR !== confpassword_VR) return res.status(403).json({ OK: false, status: 403, error: `Password must match.` });
     
         let u = await user.find({  }, { email: 1 }).lean();
-        u = u.map((h) => { if (decrypt(h.email) == email_VR.toLowerCase()) return h })[0];
+        u = u.map((h) => { if (decrypt(h.email.toLowerCase()) == email_VR.toLowerCase()) return h })[0];
         if (u) return res.status(403).json({ OK: false, status: 403, error: `E-Mail already used before` });
     
         session = randomUUID();
@@ -589,9 +599,9 @@ a.post('/v1/account/edit/avatar', async function (req, res) {
                                 fileName: data.fileName
                             });
                             await user.updateOne({ session }, { $set: { pfp: `https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png`, pfp_id: "4_zd5afb20446dd61128b590419_f106e64e803b29f2b_d20221230_m174015_c004_v0402001_t0028_u01672422015619" } });
+                            delete avatarCache[u.uuid];
                         });
                     };
-                    delete avatarCache[u.uuid];
                     return res.json({ OK: true, status: 200, text: `Updated avatar` });
                 }
 
@@ -628,10 +638,8 @@ a.post('/v1/account/edit/avatar', async function (req, res) {
                         data: file.buffer,
                         hash: '',
                         onUploadProgress: (event) => {}
-                    }).then(async fin => { await user.updateOne({ session }, { $set: { pfp: `https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`, pfp_id: fin.data.fileId } }) });
+                    }).then(async fin => { await user.updateOne({ session }, { $set: { pfp: `https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`, pfp_id: fin.data.fileId } }); delete avatarCache[u.uuid]; });
                 });
-
-                delete avatarCache[u.uuid];
                 res.json({ OK: true, status: 200, text: `Updated avatar` });
             };
         });
@@ -732,7 +740,7 @@ a.post('/v1/account/edit/banner', async function (req, res) {
 
 a.post('/v1/create_url', async function (req, res) {
     let { session } = req.cookies;
-    let { url_vr, title_vr, subtitle_vr, highlight_vr } = req.body;
+    let { url_vr, title_vr, subtitle_vr, highlight_vr, limit_vr, llC } = req.body;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
@@ -745,6 +753,8 @@ a.post('/v1/create_url', async function (req, res) {
     let u = await user.findOne({ session }).lean();
     let token = Math.random().toString(32).substring(8);
     let highlight = false;
+    let isLimit = false;
+    let isLimitNum = undefined;
     let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`;
 
     let checkurl = await short_url.find({ author: u._id, blocked: false }).lean();
@@ -754,8 +764,16 @@ a.post('/v1/create_url', async function (req, res) {
 
     if (req.body.ico) req.file = req.body.ico;
     if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
+    if (u.pro && limit_vr && llC == "on") isLimit = true;
     if (url_vr.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
-    if (url_vr.includes('twitter.com')) thumb = "https://ferret.page/public/twitter_normal.png";
+    if (url_vr.includes('twitter.com')) thumb = "https://ferret.page/public/i/assets/twitter_normal.png";
+
+    if (isLimit && !isNaN(limit_vr)) {
+        limit_vr = parseInt(limit_vr);
+        if (limit_vr > 2500) return res.status(403).json({ OK: false, status: 403, error: `Upgrade plan to increase the click limit: ${limit_vr}/2500` });
+        if (limit_vr < 1) return res.status(403).json({ OK: false, status: 403, error: `Click limit must be greater than 1: ${limit_vr}/2500` });
+        isLimitNum = limit_vr;
+    };
 
     if (req.file) {
         var up = upload.single('ico');
@@ -802,10 +820,12 @@ a.post('/v1/create_url', async function (req, res) {
                             subtitle: encrypt(subtitle_vr),
                             thumbnail: encrypt(`https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`),
                             order: "99",
+                            limitClick: isLimitNum,
                             clicks: [],
                             highlight,
                             hidden: false,
                             blocked: false,
+                            limitClicks: isLimit,
                             blocked_reason: "",
                             date: Date.now(),
                             uuid: randomUUID()
@@ -826,10 +846,12 @@ a.post('/v1/create_url', async function (req, res) {
         subtitle: encrypt(subtitle_vr),
         thumbnail: encrypt(thumb),
         order: "99",
+        limitClick: isLimitNum,
         clicks: [],
         highlight,
         hidden: false,
         blocked: false,
+        limitClicks: isLimit,
         blocked_reason: "",
         date: Date.now(),
         uuid: randomUUID()
@@ -854,7 +876,7 @@ a.get('/v1/remove_url/:uuid', async function (req, res) {
 
 a.post('/v1/edit_url/:uuid', async function (req, res) {
     let { session } = req.cookies;
-    let { title_vr, subtitle_vr, order_vr, url_vr, highlight_vr } = req.body;
+    let { title_vr, subtitle_vr, order_vr, url_vr, highlight_vr, limit_vr, llC } = req.body;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
@@ -866,6 +888,8 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
     let title = title_vr;
     let stitle = subtitle_vr;
     let highlight = false
+    let isLimit = urls.limitClicks;
+    let isLimitNum = parseInt(urls.limitClick);
     let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`;
 
     if (!title) title = decrypt(urls.title);
@@ -873,14 +897,23 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
 
     let regex = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/
     let url = regex.test(url_vr);
-    
+    let limitClicks = true;
+    if (!llC) limitClicks = false;
     if (!url) return res.status(403).json({ OK: false, status: 403, error: `Invalid URL` });
 
     if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
+    if (u.pro) {
+        if (!isNaN(limit_vr)) {
+            limit_vr = parseInt(limit_vr);
+            if (limit_vr > 2500) return res.status(403).json({ OK: false, status: 403, error: `Upgrade plan to increase the click limit: ${limit_vr}/2500` });
+            if (limit_vr < 1) return res.status(403).json({ OK: false, status: 403, error: `Click limit must be greater than 1: ${limit_vr}/2500` });
+            isLimitNum = limit_vr;
+        };
+    };
     if (url_vr.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
     if (url_vr.includes('twitter.com')) thumb = "https://ferret.page/public/i/assets/twitter_normal.png";
 
-    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), thumbnail: encrypt(thumb), order: parseInt(order_vr), link: encrypt(url_vr), highlight } });
+    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), thumbnail: encrypt(thumb), order: parseInt(order_vr), link: encrypt(url_vr), highlight, limitClick: isLimitNum, limitClicks } });
     res.json({ OK: true, status: 200, text: `Updated link` });
 });
 
@@ -1314,6 +1347,257 @@ a.get('/admin/remove_views/:name', async function (req, res) {
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.post('/admin/account/edit', async function (req, res) {
+    let { session } = req.cookies;
+    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr } = req.body;
+    let { uuid } = req.query;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    if (!uuid) return res.status(403).json({ OK: false, status: 403, error: `You must specify a UUID` });
+    if (!name_vr) return res.status(403).json({ OK: false, status: 403, error: `You must have a username` });
+
+    let acc = await user.findOne({ uuid }).lean();
+    let char = /^[a-zA-Z0-9_]+$/;
+    let darktheme = "";
+
+    if (!display_vr) {
+        await user.updateOne({ uuid }, { $set: { displayName: acc.name } });
+        res.json({ OK: true, status: 200, status: "Set display name to: None" });
+        return
+    };
+
+    if (display_vr) {
+        if (display_vr.length > 28) return res.status(403).json({ OK: false, status: 403, error: `Invalid length: ${display_vr.length}/28` });
+        // if (!char.test(display_vr)) return res.status(403).json({ OK: false, status: 403, error: `Invalid Display Name` });
+        if (acc.ogname) {
+            if (!display_vr.includes(' ') && display_vr.toUpperCase() !== acc.nameToFind) return res.status(403).json({ OK: false, status: 403, error: `Display name must include username` });
+
+            let splitName = display_vr.split(' ');
+            let isname = false;
+            splitName.forEach(elm => {
+                if (elm.toUpperCase() == acc.nameToFind) isname = true;
+            });
+
+            if (!isname) return res.status(403).json({ OK: false, status: 403, error: `Display name must include username` });
+        }
+
+        await user.updateOne({ uuid }, { $set: { displayName: display_vr } });
+    };
+
+    if (name_vr && acc.nameToFind !== name_vr.toUpperCase()) {
+        name_vr = encodeURIComponent(name_vr);
+
+        if (!char.test(name_vr)) return res.status(403).json({ OK: false, status: 403, error: `Invalid regex form` });
+
+        if (name_vr.length < 2) return res.status(400).json({ OK: false, status: 400, error: `Username must be greater than 2 characters` });
+        if (name_vr.length > 15) return res.status(400).json({ OK: false, status: 400, error: `Username must be less than 16 characters` });
+        
+        let checkname = await user.findOne({ nameToFind: name_vr.toUpperCase(), hidden: false }, { uuid: 1 }).lean();
+        if (checkname) return res.status(403).json({ OK: false, status: 403, error: `Username is already taken` });
+
+        await user.updateOne({ uuid }, { $set: { name: name_vr, nameToFind: name_vr.toUpperCase() } });
+        await user.updateOne({ uuid }, { $push: { nameHistory: [{ name: name_vr, date: Date.now(), hidden: false, uuid: randomUUID() }] } });
+    };
+
+    if (bio_vr && bio_vr.length > 95) return res.status(400).json({ OK: false, status: 400, error: `Bio must be less than 96 characters` });
+    if (location_vr.length > 57) return res.status(400).json({ OK: false, status: 400, error: `Location must be less than 58 characters` });
+
+    let pronoun = { hh: "he/him", hi: "he/it", hs: "he/she", ht: "he/they", ih: "it/him", ii: "it/its", is: "it/she", it: "it/they", shh: "she/he", sh: "she/her", si: "she/it", st: "she/they", th: "they/he", ti: "they/it", ts: "they/she", tt: "they/them", any: "Any pronouns", other: "Other pronouns", ask: "Please ask", avoid: "Avoid pronouns" };
+    if (!pronouns_vr) pronoun = null;
+    if (pronouns_vr == "Unspecified...") pronoun = null;
+    if (pronouns_vr && pronoun && !pronoun[pronouns_vr.toLowerCase()]) pronoun = null;
+    if (pronouns_vr && pronoun && pronoun[pronouns_vr.toLowerCase()]) pronoun = pronoun[pronouns_vr.toLowerCase()];
+
+    if (location_vr.length < 1) {
+        location_vr = "";
+    }
+    if (acc.pro && darktheme_vr == "on") darktheme = "dark";
+    await user.updateOne({ uuid }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme } });
+
+    res.json({ OK: true, status: 200, status: `Updated profile` });
+});
+
+a.post('/admin/account/edit/avatar', async function (req, res) {
+    let { session } = req.cookies;
+    let { uuid } = req.query;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+        var up = upload.single('pfp');
+
+        let u = await user.findOne({ uuid }).lean();
+
+        up(req, res, async function (e) {
+            if (e) console.log(e);
+            if (e) return res.status(500).json({ OK: false, error: `${e}` });
+            if (!e) {
+                let file = null;
+                let fileExtension = null;
+                let upl = null;
+                let authT = null;
+                if (req.file) file = req.file;
+                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
+                if (fileExtension) fileExtension = fileExtension[0];
+
+                if (!file) {
+                    let current = u.pfp;
+
+                    if (current !== "https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png") {
+                        b2.getFileInfo({
+                            fileId: u.pfp_id
+                        }).then(async tt => {
+                            let data = tt.data;
+
+                            b2.deleteFileVersion({
+                                fileId: data.fileId,
+                                fileName: data.fileName
+                            });
+                            await user.updateOne({ uuid }, { $set: { pfp: `https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png`, pfp_id: "4_zd5afb20446dd61128b590419_f106e64e803b29f2b_d20221230_m174015_c004_v0402001_t0028_u01672422015619" } });
+                            delete avatarCache[u.uuid];
+                        });
+                    };
+                    return res.json({ OK: true, status: 200, text: `Updated avatar` });
+                }
+
+                if (file && file.mimetype !== "image/gif") {
+                    await sharp(file.buffer).resize({ width: 256, height: 256 }).toBuffer().then(data => {
+                        if (data) file.buffer = data; file.size = data.length;
+                    });
+                };
+
+                if (u.pfp !== "https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png") {
+                    b2.getFileInfo({
+                        fileId: u.pfp_id
+                    }).then(async tt => {
+                        let data = tt.data
+                        b2.deleteFileVersion({
+                            fileId: data.fileId,
+                            fileName: data.fileName
+                        });
+                    });
+                };
+
+                b2.getUploadUrl({
+                    bucketId: 'd5afb20446dd61128b590419'
+                }).then(tt => {
+                    upl = tt.data.uploadUrl; 
+                    authT = tt.data.authorizationToken;
+
+                    b2.uploadFile({
+                        uploadUrl: upl,
+                        uploadAuthToken: authT,
+                        fileName: randomUUID(),
+                        contentLength: file.size,
+                        mime: file.mimetype,
+                        data: file.buffer,
+                        hash: '',
+                        onUploadProgress: (event) => {}
+                    }).then(async fin => { await user.updateOne({ uuid }, { $set: { pfp: `https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`, pfp_id: fin.data.fileId } }); delete avatarCache[u.uuid]; });
+                });
+
+                res.json({ OK: true, status: 200, text: `Updated avatar` });
+            };
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
+});
+
+a.post('/admin/account/edit/banner', async function (req, res) {
+    let { session } = req.cookies;
+    let { uuid } = req.query;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+        var up = upload.single('banner');
+
+        let u = await user.findOne({ uuid }).lean();
+
+        up(req, res, async function (e) {
+            if (e) console.log(e);
+            if (e) return res.status(500).json({ OK: false, error: `${e}` });
+            if (!e) {
+                let file = null;
+                let fileExtension = null;
+                let upl = null;
+                let authT = null;
+                if (req.file) file = req.file;
+                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
+                if (fileExtension) fileExtension = fileExtension[0];
+
+                if (!file) {
+                    let current = u.banner;
+
+                    if (current !== "") {
+                        b2.getFileInfo({
+                            fileId: u.banner_id
+                        }).then(async tt => {
+                            let data = tt.data;
+
+                            b2.deleteFileVersion({
+                                fileId: data.fileId,
+                                fileName: data.fileName
+                            });
+                        });
+                    };
+                    delete bannerCache[u.uuid];
+                    await user.updateOne({ uuid }, { $set: { banner: "", banner_id: "" } });
+                    return res.json({ OK: true, status: 200, text: `Updated banner` });
+                }
+
+                if (file && file.mimetype !== "image/gif") {
+                    await sharp(file.buffer).resize({ width: 350, height: 150 }).toBuffer().then(data => {
+                        if (data) file.buffer = data; file.size = data.length;
+                    });
+                };
+
+                if (u.banner !== "") {
+                    b2.getFileInfo({
+                        fileId: u.banner_id
+                    }).then(async tt => {
+                        let data = tt.data
+                        b2.deleteFileVersion({
+                            fileId: data.fileId,
+                            fileName: data.fileName
+                        });
+                    });
+                };
+
+                b2.getUploadUrl({
+                    bucketId: 'd5afb20446dd61128b590419'
+                }).then(tt => {
+                    upl = tt.data.uploadUrl; 
+                    authT = tt.data.authorizationToken;
+
+                    b2.uploadFile({
+                        uploadUrl: upl,
+                        uploadAuthToken: authT,
+                        fileName: randomUUID(),
+                        contentLength: file.size,
+                        mime: file.mimetype,
+                        data: file.buffer,
+                        hash: '',
+                        onUploadProgress: (event) => {}
+                    }).then(async fin => { await user.updateOne({ uuid }, { $set: { banner: `https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`, banner_id: fin.data.fileId } }) });
+                });
+
+                delete bannerCache[u.uuid];
+                res.json({ OK: true, status: 200, text: `Updated banner` });
+            };
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
     };
 });
 

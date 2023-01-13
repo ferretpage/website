@@ -9,13 +9,13 @@
     <%- include('../meta/nav'); %>
     <div id="editDisplay" class="">
       <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard: <div class="w-fit m-auto text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search mt-2" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Preview page" onclick="previewDisplay()" viewBox="0 0 16 16"> <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/> </svg></div></h1>
-      <div class="w-fit m-auto break-words p-2 text-lg"><% if (acc.pro) {%>
-          <div class="w-fit m-auto" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= acc.uuid %>" class="m-auto rounded object-fill w-fit lg:w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
+      <div class="w-[85%] lg:w-1/4 m-auto break-words p-2 text-lg"><% if (acc.pro) {%>
+          <div class="m-auto" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= acc.uuid %>" class="m-auto rounded object-fill lg:w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
           <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-4 <% if (acc.banner !== '') {%> -mt-[85px]<%}%>" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
           <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
           <div class="hidden" role="alert" id="error"></div>
           <div class="my-2"></div><% if (acc.verified) {%>
-          <form id="mainUpdate-form" class="p-1 m-auto w-fit">
+          <form id="mainUpdate-form" class="p-1 m-auto w-full sm:w-[75%]">
               <div class="flex flex-auto gap-2" id="mainSett">
                   <div class="form-floating mb-2 break-words">
                       <input type="text" class="form-control" placeholder="Update your display name" id="updateDisplay" name="display_vr" value="<%=acc.displayName%>" autocomplete="off"></input>
@@ -63,7 +63,7 @@
               </div>
           </form>
           <div class="my-3"></div>
-          <div class="w-fit border-black border-1 bg-zinc-300 dark:bg-zinc-700 dark:border-white p-3 m-auto">
+          <div class="w-min md:w-[65%] border-black border-1 bg-zinc-300 dark:bg-zinc-700 dark:border-white p-3 m-auto">
               <div class="w-fit p-4 m-auto flex flex-wrap gap-2">
                   <div class="flex align-middle w-fit m-auto hover:underline hover:cursor-pointer dark:text-white" id="createLink_VR" onclick="createLink()">
                       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/></svg>
@@ -92,6 +92,14 @@
                           <div class="form-check form-switch w-fit m-auto">
                               <input class="form-check-input" type="checkbox" role="switch" id="highlight-link" name="highlight_vr">
                               <label class="form-check-label dark:text-white" for="highlight-link">Highlight</label>
+                          </div>
+                          <div class="form-check form-switch w-fit m-auto" id="ll2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="limit-link2" name="llC" onclick="showLimit()">
+                            <label class="form-check-label dark:text-white" for="limit-link2">Limit Clicks</label>
+                          </div>
+                          <div class="hidden" id="ll">
+                            <input type="number" class="form-control" placeholder="1" id="limit-link" name="limit_vr" autocomplete="off"></input>
+                            <label class="form-check-label dark:text-white" for="limit-link">Limit Clicks</label>
                           </div><%}%>
                       </div>
                       <hr/>
@@ -111,16 +119,16 @@
                   <% if (qr) {%><a class="hover:text-current w-fit m-auto" href="<%=qr%>" download="qrcode.png"><img src="<%=qr%>" draggable="false"></a><%} else {%><h1 class="text-2xl w-fit m-auto">Unable to load QR code.</h1><%}%>
               </div>
           </div>
-          <div class="w-[90%] p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => {%>
+          <div class="p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => {%>
               <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white dark:border-white rounded-lg w-[85%] lg:w-[320px] text-center m-auto p-4">
                   <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-pulse<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
                       <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
                   </div>
-                  <div class="m-auto w-fit">
+                  <div class="m-auto break-full">
                       <%=elm.title%><% if (elm.subtitle !== "") {%>
                       <span class="text-gray-700 dark:text-gray-400 figure-caption"><%=elm.subtitle%></span><%}%>
                   </div></a>
-                  <div class="w-fit m-auto flex flex-wrap gap-2">
+                  <div class="w-full md:w-fit justify-center m-auto flex flex-wrap gap-2">
                       <input type="text" class="hidden" name="dismiss_vr" value="<%=elm.uuid%>">
                       <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Remove"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-x-square-fill align-middle mt-1 m-auto w-fit hover:cursor-pointer" id="<%=elm.uuid%>-dismiss" onclick="dismiss('<%=elm.uuid%>')" viewBox="0 0 16 16"><path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/></svg></span>
                       <input type="text" class="hidden" name="edit_vr" value="<%=elm.uuid%>">
@@ -160,6 +168,15 @@
                                       <% if (!elm.highlight) {%><input class="form-check-input" type="checkbox" role="switch" id="highlight-linkEdit" name="highlight_vr"><%}%>
                                       <% if (elm.highlight) {%><input class="form-check-input" type="checkbox" role="switch" id="highlight-linkEdit" name="highlight_vr" checked><%}%>
                                       <label class="form-check-label" for="highlight-linkEdit">Highlight</label>
+                                  </div>
+                                  <div class="form-check form-switch w-fit m-auto" id="edit-ll2-<%=elm.uuid%>">
+                                    <% if (!elm.limitClicks) {%><input class="form-check-input" type="checkbox" role="switch" id="limit-linkEdit" name="llC" onclick="editClicks('<%=elm.uuid%>')"><%}%>
+                                    <% if (elm.limitClicks) {%><input class="form-check-input" type="checkbox" role="switch" id="limit-linkEdit" name="llC" onclick="editClicks('<%=elm.uuid%>')" checked><%}%>
+                                    <label class="form-check-label" for="highlight-linkEdit">Limit Clicks</label>
+                                  </div>
+                                  <div class="<% if (!elm.limitClicks) {%>hidden<%} else {%>form-floating mb-2 break-all w-fit m-auto mt-2<%}%>" id="edit-ll-<%=elm.uuid%>">
+                                    <input type="number" class="form-control" placeholder="1" id="limit-edit" name="limit_vr" value="<%=elm.limitClick%>" autocomplete="off"></input>
+                                    <label class="form-check-label dark:text-white" for="limit-edit">Limit Clicks</label>
                                   </div><%}%>
                               </div>
                             </div>
@@ -307,7 +324,7 @@
             };
             if (change !== "hidden") {
               preview.setAttribute('class', 'hidden');
-              edit.setAttribute('class', 'w-fit m-auto');<% if (acc && acc.pro && acc.theme == "dark") {%>
+              edit.setAttribute('class', 'm-auto');<% if (acc && acc.pro && acc.theme == "dark") {%>
               document.getElementById('html').setAttribute('class', '')<%}%>
             };
         };
@@ -348,7 +365,31 @@
             if (change !== "hidden") {
                 two.setAttribute('class', 'hidden');
             };
+        };<% if (acc.pro) {%>
+        function showLimit() {
+            let two = document.getElementById('ll2');
+            let one = document.getElementById('ll');
+            let change = one.getAttribute('class');
+            
+            if (change !== "hidden") {
+              one.setAttribute('class', 'hidden');
+            };
+            if (change == "hidden") {
+              one.setAttribute('class', 'form-floating mb-2 break-all w-fit m-auto mt-2');
+            };
         };
+        function editClicks(id) {
+            let two = document.getElementById(`edit-ll2-${id}`);
+            let one = document.getElementById(`edit-ll-${id}`);
+            let change = one.getAttribute('class');
+
+            if (change !== "hidden") {
+              one.setAttribute('class', 'hidden');
+            };
+            if (change == "hidden") {
+              one.setAttribute('class', 'form-floating mb-2 break-all w-fit m-auto mt-2');
+            };
+        };<%}%>
         function getBase64(file) {
           if (!file) return
           return new Promise((resolve, reject) => {
