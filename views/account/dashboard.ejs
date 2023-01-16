@@ -9,7 +9,7 @@
     <%- include('../meta/nav'); %>
     <div id="editDisplay" class="">
       <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard: <div class="w-fit m-auto text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search mt-2" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Preview page" onclick="previewDisplay()" viewBox="0 0 16 16"> <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/> </svg></div></h1>
-      <div class="w-[85%] lg:w-1/4 m-auto break-words p-2 text-lg"><% if (acc.pro) {%>
+      <div class="w-[85%] lg:w-1/2 m-auto break-words p-2 text-lg"><% if (acc.pro) {%>
           <div class="m-auto" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= acc.uuid %>" class="m-auto rounded object-fill lg:w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
           <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-4 <% if (acc.banner !== '') {%> -mt-[85px]<%}%>" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
           <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
@@ -296,16 +296,28 @@
         <div class="mt-6"></div>
       </div>
       <hr class="mb-2 w-1/3 m-auto dark:text-white" style="height: 2.5px;"/>
-      <div class="w-[90%] lg:w-fit p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => {%>
-          <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded-lg m-auto w-[85%] lg:w-[320px] p-4">
-              <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-[pulse_2.5s_ease-out_infinite]<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
-                  <img src="<%=elm.thumbnail%>" class="w-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
-              </div>
-              <div class="m-auto text-center">
-                  <%=elm.title%><% if (elm.subtitle !== "") {%>
-                  <span class="text-gray-700 dark:text-gray-400 figure-caption"><%=elm.subtitle%></span><%}%>
-              </div></a>
-          </div><%})}%>
+      <div class="w-[90%] lg:w-fit p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => { if (!elm.limitClicks) {%>
+        <% if (!elm.link.includes('youtube.com/watch?v=')) {%><div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded-lg m-auto w-[85%] lg:w-[320px] p-4">
+            <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-[pulse_2.5s_ease-out_infinite]<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
+                <img src="<%=elm.thumbnail%>" class="w-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+            </div>
+            <div class="m-auto text-center">
+                <%=elm.title%><% if (elm.subtitle !== "") {%>
+                <span class="text-gray-700 dark:text-gray-400 figure-caption"><%=elm.subtitle%></span><%}%>
+            </div></a>
+        </div><%}%><% if (elm.link.includes('youtube.com/watch?v=')) {%>
+        <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white m-auto w-[85%] lg:w-[320px]">
+            <iframe class="w-[100.5%] lg:w-[100%] m-auto" src="https://www.youtube-nocookie.com/embed/<%=elm.link.split('?v=')[1]%>" title="<%=elm.title%>" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div><%}}%><% if (elm.limitClicks && parseInt(elm.limitClick) > elm.clicks.length) {%>
+        <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded-lg m-auto w-[85%] lg:w-[320px] p-4">
+            <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-[pulse_2.5s_ease-out_infinite]<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
+                <img src="<%=elm.thumbnail%>" class="w-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+            </div>
+            <div class="m-auto text-center">
+                <%=elm.title%><% if (elm.subtitle !== "") {%>
+                <span class="text-gray-700 dark:text-gray-400 figure-caption"><%=elm.subtitle%></span><%}%>
+            </div></a>
+        </div><%}})}%>
       </div>
     </div>
     <script defer>
@@ -336,7 +348,7 @@
             
             if (change == "hidden") {
               main.setAttribute('class', 'hidden');
-              misc.setAttribute('class', 'flex flex-auto gap-2');
+              misc.setAttribute('class', 'flex flex-auto gap-2 w-fit m-auto');
             };
             if (change !== "hidden") {
               misc.setAttribute('class', 'hidden');

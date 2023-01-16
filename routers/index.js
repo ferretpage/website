@@ -434,7 +434,8 @@ a.get('/:uuid/edit', async function (req, res) {
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
     if (acc && acc.blocked) return res.redirect('/help/suspended-accounts');
-    if (!acc.staff) return res.redirect('/');
+    if (!acc) return res.redirect('/');
+    if (acc && !acc.staff) return res.redirect('/');
     let v = await user.findOne({ uuid: req.params.uuid }).lean();
 
     if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc });

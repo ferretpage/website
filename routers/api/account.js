@@ -219,14 +219,15 @@ a.post('/v1/register', async function (req, res) {
         if (!TOS_VR) return res.status(403).json({ OK: false, status: 403, error: `Please confirm that you read our ToS before joining` });
         if (password_VR !== confpassword_VR) return res.status(403).json({ OK: false, status: 403, error: `Password must match.` });
     
-        let u = await user.find({  }, { email: 1 }).lean();
-        u = u.map((h) => { if (decrypt(h.email.toLowerCase()) == email_VR.toLowerCase()) return h })[0];
-        if (u) return res.status(403).json({ OK: false, status: 403, error: `E-Mail already used before` });
-    
+        let EMAIL_ALREADY = false;
         session = randomUUID();
         let uuid = randomUUID();
         let api_key = randomUUID();
         let username = Username_VR;
+        let u = await user.find({  }, { email: 1 }).lean();
+
+        u = u.map((h) => { if (decrypt(h.email) == email_VR.toLowerCase()) return EMAIL_ALREADY = true; });
+        if (u && EMAIL_ALREADY) return res.status(403).json({ OK: false, status: 403, error: `E-Mail already used before` });
 
         if (username.length < 2) return res.status(400).json({ OK: false, status: 400, error: `Username must be greater than 2 characters` });
         if (username.length > 15) return res.status(400).json({ OK: false, status: 400, error: `Username must be less than 16 characters` });
@@ -327,7 +328,6 @@ a.post('/v1/signin', async function (req, res) {
     let { session } = req.cookies;
     let { email_VR, password_VR, TFA_VR, expire_VR, code_VR } = req.body;
 
-    // if (session) return res.status(403).json({ OK: false, status: 403, error: `You are already logged in!` });
     if (!email_VR || !password_VR) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
     if (!code_VR) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
     if (code_VR !== authCode[code_VR]) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
@@ -902,7 +902,7 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
     if (!url) return res.status(403).json({ OK: false, status: 403, error: `Invalid URL` });
 
     if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
-    if (u.pro) {
+    if (u.pro && limitClicks) {
         if (!isNaN(limit_vr)) {
             limit_vr = parseInt(limit_vr);
             if (limit_vr > 2500) return res.status(403).json({ OK: false, status: 403, error: `Upgrade plan to increase the click limit: ${limit_vr}/2500` });
