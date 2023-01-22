@@ -9,14 +9,33 @@
     <%- include('../meta/nav'); %>
     <div id="editDisplay" class="">
       <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white"><%=view.name%>'s dashboard: </h1>
-      <div class="w-[65%] lg:w-1/4 m-auto break-words p-2 text-lg"><% if (view.pro) {%>
+      <div class="w-[85%] lg:w-1/2 m-auto break-words p-2 text-lg"><% if (view.pro) {%>
           <div class="m-auto" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= view.uuid %>" class="m-auto rounded object-fill lg:w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
           <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= view.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-4 <% if (view.banner !== '') {%> -mt-[85px]<%}%>" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
           <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
           <div class="hidden" role="alert" id="error"></div>
+          <div class="w-fit m-auto p-1 font-bold">
+            <p class="w-fit m-auto">Last Login: <time data-time="<%=view.last_login%>"></time></p>
+            <p class="w-fit m-auto">Created At: <time data-time="<%=view.createdAt%>"></time></p>
+            <div class="flex flex-auto gap-2 w-fit m-auto">
+              <p class="w-fit m-auto">Is banned: <%=view.blocked%></p>
+              <p class="w-fit m-auto">Is Pro User: <%=view.pro%></p>
+              <p class="w-fit m-auto">Is 2FA Enabled: <% if (view.TFA) {%>true<%} else {%>false<%}%></p>
+            </div>
+            <div class="w-fit p-4 m-auto flex flex-wrap gap-2 dark:text-white">
+              <% if (view.connectedUser && view.connectedUser.length > 0) { view.connectedUser.forEach((elm) => {%>
+                <div class="w-fit m-auto dark:text-white">
+                    <a href="/<%=elm.user.name%>" class="hover:text-current hover:underline" target="_blank"><img src="/avatar/<%=elm.user.uuid%>" class="rounded-full w-[64px] h-[64px] object-fill m-auto align-middle mb-1 border-black border-2 dark:border-white" draggable="false">
+                    <p class="text-2xl align-middle w-fit m-auto"><% if (elm.user.name !== '') {%>@<%=elm.user.name%><%}%><% if (elm.user.displayName == '' && elm.user.name == '') {%><%=elm.user.uuid%><%}%></p></a>
+                </div><%})} else {%>
+                <div class="w-fit m-auto dark:text-white">
+                    <p class="text-2xl align-middle">No connected users found...</p>
+                </div><%}%>
+            </div>
+          </div>
           <div class="my-2"></div><% if (view.verified) {%>
           <form id="mainUpdate-form" class="p-1 m-auto w-full sm:w-[75%]">
-              <div class="flex flex-auto gap-2" id="mainSett">
+              <div class="flex flex-auto gap-2 w-fit m-auto" id="mainSett">
                   <div class="form-floating mb-2 break-words">
                       <input type="text" class="form-control" placeholder="Update your display name" id="updateDisplay" name="display_vr" value="<%=view.displayName%>" autocomplete="off"></input>
                       <label for="updateDisplay">Display</label>
@@ -51,7 +70,16 @@
                       <option value="<%=elm%>" selected><% if (elm == 'hh') { elm = 'he/him' }; if (elm == 'hi') { elm = 'he/it' }; if (elm == 'hs') { elm = 'he/she' }; if (elm == 'ht') { elm = 'he/they' }; if (elm == 'ih') { elm = 'it/him' }; if (elm == 'ii') { elm = 'it/its' }; if (elm == 'is') { elm = 'it/she' }; if (elm == 'it') { elm = 'it/they' }; if (elm == 'shh') { elm = 'she/he' }; if (elm == 'sh') { elm = 'she/her' }; if (elm == 'si') { elm = 'she/it' }; if (elm == 'st') { elm = 'she/they' }; if (elm == 'th') { elm = 'they/he' }; if (elm == 'ti') { elm = 'they/it' }; if (elm == 'ts') { elm = 'they/she' }; if (elm == 'tt') { elm = 'they/them' }; if (elm == 'any') { elm = 'Any pronouns' }; if (elm == 'other') { elm = 'Other pronouns' }; if (elm == 'ask') { elm = 'Ask for my pronouns' }; if (elm == 'avoid') { elm = 'Avoid pronouns, use my name' }; %><%=elm%></option><%}})%>
                     </select>
                   </div>
-              </div>
+                </div>
+                <div class="form-floating mb-2 break-words">
+                  <div class="input-group mb-3">
+                    <label class="input-group-text" for="borderGroup">Border</label>
+                    <select class="form-select" id="borderGroup" name="border_vr">
+                      <option value="none">None</option><% let border = [ "lesbian", "gay", "bisexual", "trans", "queer", "intersex", "asexual", "agender", "aroace", "nonbinary", "polyamorous", "poly", "gaymale", "gayfemale", "genderqueer", "omni" ]; border.forEach((elm) => { let short; if (elm == 'lesbian') short = 'Lesbian'; if (elm == 'gay') short = 'Gay'; if (elm == 'bisexual') short = 'Bisexual'; if (elm == 'trans') short = 'Trans'; if (elm == 'queer') short = 'Queer'; if (elm == 'intersex') short = 'Intersex'; if (elm == 'asexual') short = 'Asexual'; if (elm == 'agender') short = 'Agender'; if (elm == 'aroace') short = 'Aroace'; if (elm == 'nonbinary') short = 'Non-Binary'; if (elm == 'polyamorous') short = 'Polyamorous'; if (elm == 'poly') short = 'Poly'; if (elm == 'gaymale') short = 'Gay Male'; if (elm == 'gayfemale') short = 'Gay Female'; if (elm == 'genderqueer') short = 'Genderqueer'; if (elm == 'omni') short = 'Omni'; if (elm !== view.personal_border) {%>
+                      <option value="<%=elm%>"><%=short%></option><%} else {%><option value="<%=elm%>" selected><%=short%></option><%}})%>
+                    </select>
+                  </div>
+                </div>
               </div>
               <div class="w-min m-auto mt-2">
                 <div class="flex flex-auto gap-2">
@@ -209,6 +237,12 @@
     <script defer>
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+        $('time').each(function (e) {
+            time = parseInt($(this).attr('data-time'));
+            time = new Date(time).toLocaleString();
+            $(this).html(time);
+        });
         
         function miscDisplay() {
             let main = document.getElementById('mainSett');
@@ -217,11 +251,11 @@
             
             if (change == "hidden") {
               main.setAttribute('class', 'hidden');
-              misc.setAttribute('class', 'flex flex-auto gap-2');
+              misc.setAttribute('class', 'flex flex-auto gap-2 w-fit m-auto');
             };
             if (change !== "hidden") {
               misc.setAttribute('class', 'hidden');
-              main.setAttribute('class', 'flex flex-auto gap-2');
+              main.setAttribute('class', 'flex flex-auto gap-2 w-fit m-auto');
             };
         };
 

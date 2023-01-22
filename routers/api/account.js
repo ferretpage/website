@@ -185,6 +185,20 @@ a.get('/v1/pronouns', async function (req, res) {
     res.send(JSON.stringify(result, null, 2.5));
 });
 
+a.get('/v1/personal_border', async function (req, res) {
+    let { name } = req.query;
+
+    if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+    let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
+
+    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+
+    let result = { OK: true, status: 200, border: s.personal_border };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(result, null, 2.5));
+});
+
 a.get('/v1/inactive/:name', async function (req, res) {
     let { name } = req.params;
 
@@ -266,6 +280,7 @@ a.post('/v1/register', async function (req, res) {
             url: "",
             location: "",
             reason: "",
+            personal_border: "none",
             linklimit: "25",
             links: [],
             socials: [],
@@ -480,7 +495,7 @@ a.get('/verify/no/:uid', async function (req, res) {
 
 a.post('/v1/account/edit', async function (req, res) {
     let { session } = req.cookies;
-    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr } = req.body;
+    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr, border_vr } = req.body;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
@@ -553,11 +568,17 @@ a.post('/v1/account/edit', async function (req, res) {
     if (pronouns_vr && pronoun && !pronoun[pronouns_vr.toLowerCase()]) pronoun = null;
     if (pronouns_vr && pronoun && pronoun[pronouns_vr.toLowerCase()]) pronoun = pronoun[pronouns_vr.toLowerCase()];
 
+    let pBorder = 'none';
+    let crossBorder = { "lesbian": "lesbian", "gay": "gay", "bisexual": "bisexual", "trans": "trans", "queer": "queer", "intersex": "intersex", "asexual": "asexual", "agender": "agender", "aroace": "aroace", "nonbinary": "nonbinary", "polyamorous": "polyamorous", "poly": "poly", "gaymale": "gaymale", "gayfemale": "gayfemale", "genderqueer": "genderqueer", "omni": "omni" };
+    if (border_vr && crossBorder[border_vr.toLowerCase()]) {
+        pBorder = border_vr.toLowerCase();
+    };
+
     if (location_vr.length < 1) {
         location_vr = "";
     }
     if (acc.pro && darktheme_vr == "on") darktheme = "dark";
-    await user.updateOne({ session }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme } });
+    await user.updateOne({ session }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme, personal_border: pBorder } });
 
     res.json({ OK: true, status: 200, status: `Updated profile` });
 });
@@ -1352,7 +1373,7 @@ a.get('/admin/remove_views/:name', async function (req, res) {
 
 a.post('/admin/account/edit', async function (req, res) {
     let { session } = req.cookies;
-    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr } = req.body;
+    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr, border_vr } = req.body;
     let { uuid } = req.query;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
@@ -1413,11 +1434,17 @@ a.post('/admin/account/edit', async function (req, res) {
     if (pronouns_vr && pronoun && !pronoun[pronouns_vr.toLowerCase()]) pronoun = null;
     if (pronouns_vr && pronoun && pronoun[pronouns_vr.toLowerCase()]) pronoun = pronoun[pronouns_vr.toLowerCase()];
 
+    let pBorder = 'none';
+    let crossBorder = { "lesbian": "lesbian", "gay": "gay", "bisexual": "bisexual", "trans": "trans", "queer": "queer", "intersex": "intersex", "asexual": "asexual", "agender": "agender", "aroace": "aroace", "nonbinary": "nonbinary", "polyamorous": "polyamorous", "poly": "poly", "gaymale": "gaymale", "gayfemale": "gayfemale", "genderqueer": "genderqueer", "omni": "omni" };
+    if (border_vr && crossBorder[border_vr.toLowerCase()]) {
+        pBorder = border_vr.toLowerCase();
+    };
+
     if (location_vr.length < 1) {
         location_vr = "";
     }
     if (acc.pro && darktheme_vr == "on") darktheme = "dark";
-    await user.updateOne({ uuid }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme } });
+    await user.updateOne({ uuid }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme, personal_border: pBorder } });
 
     res.json({ OK: true, status: 200, status: `Updated profile` });
 });

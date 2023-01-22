@@ -8,13 +8,14 @@
     <meta property="twitter:description" content="<% if (view.bio !== '') {%><%=view.bio%><%} else {%>This user has not set a bio yet<%}%>">
     <meta property="twitter:image" content="https://ferret.page/avatar/<%=view.uuid%>">
     <meta property="twitter:url" content="https://ferret.page/<%=view.name%>">
+    <link rel="stylesheet" href="/css/pride.css">
     
     <%- include('../meta/index', { title: view.name+"'s Profile" }); %>
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <div id="background-image-wrapper" style="background-image: url('/banner/<%=view.uuid%>'); background-repeat: no-repeat; background-size: cover; background-position: center;">
         <div class="w-fit m-auto break-words p-2 text-lg text-center dark:text-white">
-            <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12">
+            <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12" id="mainBorder">
                 <img src="/avatar/<%= view.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-2 bg-zinc-300" style="margin: auto; margin-top: -45px;" draggable="false">
                 <h2 class="font-bold text-4xl inline-flex"><%= view.displayName %><% if (view.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (view.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (view.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2>
                 <div class="flex flex-wrap gap-2"><% if (view.location && view.location !== "" && view.location !== " ") {%>
@@ -56,5 +57,13 @@
     <footer class="w-full m-auto flex lg:fixed mb-2 left-0 bottom-0 dark:text-white justify-center">
         <a class="text-2xl hover:text-current hover:underline" href="/<% if (acc) {%>dashboard<%}%>">Powered by Ferret</a>
     </footer>
+    <script defer>
+        let mainBorder = document.getElementById('mainBorder');
+        let b = fetch('/api/v1/personal_border?name=<%=view.name%>', { method: 'get' }).then((r)=>r.json()).then((w)=>{
+            let pb = null;
+            if (w.OK && w.border !== 'none') { pb = w.border; };
+            mainBorder.setAttribute('class', `bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12 ${pb}`);
+        });
+    </script>
 </body>
 </html>

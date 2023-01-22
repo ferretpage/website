@@ -3,6 +3,7 @@
 <head>
     <link rel="icon" href="/public/favicon.ico">
     <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <link rel="stylesheet" href="/css/pride.css">
     <%- include('../meta/index', { title: 'Dashboard' }); %>
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
@@ -16,7 +17,7 @@
           <div class="hidden" role="alert" id="error"></div>
           <div class="my-2"></div><% if (acc.verified) {%>
           <form id="mainUpdate-form" class="p-1 m-auto w-full sm:w-[75%]">
-              <div class="flex flex-auto gap-2" id="mainSett">
+              <div class="flex flex-auto gap-2 w-fit m-auto" id="mainSett">
                   <div class="form-floating mb-2 break-words">
                       <input type="text" class="form-control" placeholder="Update your display name" id="updateDisplay" name="display_vr" value="<%=acc.displayName%>" autocomplete="off"></input>
                       <label for="updateDisplay">Display</label>
@@ -51,7 +52,16 @@
                       <option value="<%=elm%>" selected><% if (elm == 'hh') { elm = 'he/him' }; if (elm == 'hi') { elm = 'he/it' }; if (elm == 'hs') { elm = 'he/she' }; if (elm == 'ht') { elm = 'he/they' }; if (elm == 'ih') { elm = 'it/him' }; if (elm == 'ii') { elm = 'it/its' }; if (elm == 'is') { elm = 'it/she' }; if (elm == 'it') { elm = 'it/they' }; if (elm == 'shh') { elm = 'she/he' }; if (elm == 'sh') { elm = 'she/her' }; if (elm == 'si') { elm = 'she/it' }; if (elm == 'st') { elm = 'she/they' }; if (elm == 'th') { elm = 'they/he' }; if (elm == 'ti') { elm = 'they/it' }; if (elm == 'ts') { elm = 'they/she' }; if (elm == 'tt') { elm = 'they/them' }; if (elm == 'any') { elm = 'Any pronouns' }; if (elm == 'other') { elm = 'Other pronouns' }; if (elm == 'ask') { elm = 'Ask for my pronouns' }; if (elm == 'avoid') { elm = 'Avoid pronouns, use my name' }; %><%=elm%></option><%}})%>
                     </select>
                   </div>
-              </div>
+                </div>
+                <div class="form-floating mb-2 break-words">
+                  <div class="input-group mb-3">
+                    <label class="input-group-text" for="borderGroup">Border</label>
+                    <select class="form-select" id="borderGroup" name="border_vr">
+                      <option value="none">None</option><% let border = [ "lesbian", "gay", "bisexual", "trans", "queer", "intersex", "asexual", "agender", "aroace", "nonbinary", "polyamorous", "poly", "gaymale", "gayfemale", "genderqueer", "omni" ]; border.forEach((elm) => { let short; if (elm == 'lesbian') short = 'Lesbian'; if (elm == 'gay') short = 'Gay'; if (elm == 'bisexual') short = 'Bisexual'; if (elm == 'trans') short = 'Trans'; if (elm == 'queer') short = 'Queer'; if (elm == 'intersex') short = 'Intersex'; if (elm == 'asexual') short = 'Asexual'; if (elm == 'agender') short = 'Agender'; if (elm == 'aroace') short = 'Aroace'; if (elm == 'nonbinary') short = 'Non-Binary'; if (elm == 'polyamorous') short = 'Polyamorous'; if (elm == 'poly') short = 'Poly'; if (elm == 'gaymale') short = 'Gay Male'; if (elm == 'gayfemale') short = 'Gay Female'; if (elm == 'genderqueer') short = 'Genderqueer'; if (elm == 'omni') short = 'Omni'; if (elm !== acc.personal_border) {%>
+                      <option value="<%=elm%>"><%=short%></option><%} else {%><option value="<%=elm%>" selected><%=short%></option><%}})%>
+                    </select>
+                  </div>
+                </div>
               </div>
               <div class="w-min m-auto mt-2">
                 <div class="flex flex-auto gap-2">
@@ -281,7 +291,7 @@
       <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard: <div class="w-fit m-auto text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search mt-2" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Preview page" onclick="previewDisplay()" viewBox="0 0 16 16"> <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/> </svg></div></h1>
       <div id="background-image-wrapper" style="background-image: url('/banner/<%=acc.uuid%>'); background-repeat: no-repeat; background-size: cover; background-position: center;">
         <div class="w-fit m-auto break-words p-2 text-lg text-center dark:text-white">
-            <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12">
+            <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12" id="mainBorder">
                 <img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-2 bg-zinc-300" style="margin: auto; margin-top: -45px;" draggable="false">
                 <h2 class="font-bold text-4xl inline-flex"><%= acc.displayName %><% if (acc.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (acc.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (acc.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2>
                 <div class="flex flex-wrap gap-2"><% if (acc.location && acc.location !== "" && acc.location !== " ") {%>
@@ -327,12 +337,18 @@
         function previewDisplay() {
             let edit = document.getElementById('editDisplay');
             let preview = document.getElementById('previewDisplay');
+            let mainBorder = document.getElementById('mainBorder');
             let change = preview.getAttribute('class');
             
             if (change == "hidden") {
-              edit.setAttribute('class', 'hidden');
-              preview.setAttribute('class', 'w-fit m-auto');<% if (acc && acc.pro && acc.theme == "dark") {%>
-              document.getElementById('html').setAttribute('class', 'dark')<%}%>
+              let b = fetch('/api/v1/personal_border?name=<%=acc.name%>', { method: 'get' }).then((r)=>r.json()).then((w)=>{
+                let pb = null;
+                if (w.OK && w.border !== 'none') { pb = w.border; };
+                edit.setAttribute('class', 'hidden');
+                mainBorder.setAttribute('class', `bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12 ${pb}`)
+                preview.setAttribute('class', 'w-fit m-auto');<% if (acc && acc.pro && acc.theme == "dark") {%>
+                document.getElementById('html').setAttribute('class', 'dark')<%}%>
+              });
             };
             if (change !== "hidden") {
               preview.setAttribute('class', 'hidden');

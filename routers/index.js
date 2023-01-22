@@ -409,7 +409,10 @@ a.get('/:user', async function (req, res) {
     if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };
     if (acc && !acc.blocked) {
         await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: acc._id, uuid: randomUUID(), date: Date.now() }] } });
-    }
+    };
+    if (!acc) {
+        await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: null, uuid: randomUUID(), date: Date.now() }] } });
+    };
 
     if (!links) {
         links = await short_url.find({ author: v._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
@@ -436,7 +439,7 @@ a.get('/:uuid/edit', async function (req, res) {
     if (acc && acc.blocked) return res.redirect('/help/suspended-accounts');
     if (!acc) return res.redirect('/');
     if (acc && !acc.staff) return res.redirect('/');
-    let v = await user.findOne({ uuid: req.params.uuid }).lean();
+    let v = await user.findOne({ uuid: req.params.uuid }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 
     if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc });
     let badges = await badge.findOne({ "users.user": v._id, "users.disabled": false }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
