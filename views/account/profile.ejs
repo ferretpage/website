@@ -46,7 +46,7 @@
         </div><%}}%><% if (elm.limitClicks && parseInt(elm.limitClick) > elm.clicks.length) {%>
         <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded-lg m-auto w-[85%] lg:w-[320px] p-4">
             <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-[pulse_2.5s_ease-out_infinite]<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
-                <img src="<%=elm.thumbnail%>" class="w-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+                <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
             </div>
             <div class="m-auto text-center">
                 <%=elm.title%><% if (elm.subtitle !== "") {%>

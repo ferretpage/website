@@ -26,6 +26,7 @@ const paste = require('../db/account/paste');
 const misc = require('../db/account/misc');
 const avatarCache = require('./api/avatarCache');
 const bannerCache = require('./api/bannerCache');
+const faviconCache = require('./api/faviconCache');
 const authCode = require('./api/authCode');
 
 async function removeTOKENS() {
@@ -378,6 +379,63 @@ a.get('/banner/:uuid', async function (req, res) {
     res.writeHead(200, {
         'Content-Type': banner.headers.get('content-type'),
         'Content-Length': banner.headers.get('content-length')
+    });
+    res.end(Buffer.from(buffer, 'base64'));
+});
+
+a.get('/favicon/:id.:ext', async function (req, res) {
+    if (faviconCache[req.params.id]) {
+        let image = Buffer.from(faviconCache[req.params.id].split(',')[1], 'base64');
+        if (req.params.ext && req.params.ext !== faviconCache[req.params.id].split('data:')[1].split(';')[0].split('/')[1]) return res.sendStatus(404)
+        res.writeHead(200, {
+            'Content-Type': faviconCache[req.params.id].split('data:')[1].split(';')[0],
+            'Content-Length': image.length
+        });
+        return res.end(image);
+    };
+    let u = await short_url.findOne({ id: req.params.id }).lean();
+    if (!u) return res.sendStatus(404);
+    if (u && u.blocked) return res.sendStatus(404);
+    if (u.thumbnail == "") return res.sendStatus(404);
+
+    let icon = await (await fetch(decrypt(u.thumbnail)));
+    let buffer = await icon.arrayBuffer();
+
+    if (req.params.ext && req.params.ext !== icon.headers.get('content-type').split('/')[1]) return res.sendStatus(404)
+
+    data = "data:" + icon.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
+    faviconCache[req.params.id] = data;
+
+    res.writeHead(200, {
+        'Content-Type': icon.headers.get('content-type'),
+        'Content-Length': icon.headers.get('content-length')
+    });
+    res.end(Buffer.from(buffer, 'base64'));
+});
+
+a.get('/favicon/:id', async function (req, res) {
+    if (faviconCache[req.params.id]) {
+        let image = Buffer.from(faviconCache[req.params.id].split(',')[1], 'base64');
+        res.writeHead(200, {
+            'Content-Type': faviconCache[req.params.id].split('data:')[1].split(';')[0],
+            'Content-Length': image.length
+        });
+        return res.end(image);
+    };
+    let u = await short_url.findOne({ id: req.params.id }).lean();
+    if (!u) return res.sendStatus(404);
+    if (u && u.blocked) return res.sendStatus(404);
+    if (u.thumbnail == "") return res.sendStatus(404);
+
+    let icon = await (await fetch(decrypt(u.thumbnail)));
+    let buffer = await icon.arrayBuffer();
+
+    data = "data:" + icon.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
+    faviconCache[req.params.id] = data;
+
+    res.writeHead(200, {
+        'Content-Type': icon.headers.get('content-type'),
+        'Content-Length': icon.headers.get('content-length')
     });
     res.end(Buffer.from(buffer, 'base64'));
 });

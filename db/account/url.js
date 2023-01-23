@@ -7,6 +7,7 @@ const short_url = mongo.Schema({
   title: String,
   subtitle: String,
   thumbnail: String,
+  thumbnail_pro_id: String,
   highlight: Boolean,
   limitClicks: Boolean,
   limitClick: String,

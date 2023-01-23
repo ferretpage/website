@@ -24,6 +24,7 @@ const notification = require('../../db/account/notification');
 const paste = require('../../db/account/paste');
 const avatarCache = require('../api/avatarCache');
 const bannerCache = require('../api/bannerCache');
+const faviconCache = require('../api/faviconCache');
 const authCode = require('../api/authCode');
 
 const b2 = new B2({
@@ -569,7 +570,7 @@ a.post('/v1/account/edit', async function (req, res) {
     if (pronouns_vr && pronoun && pronoun[pronouns_vr.toLowerCase()]) pronoun = pronoun[pronouns_vr.toLowerCase()];
 
     let pBorder = 'none';
-    let crossBorder = { "lesbian": "lesbian", "gay": "gay", "bisexual": "bisexual", "trans": "trans", "queer": "queer", "intersex": "intersex", "asexual": "asexual", "agender": "agender", "aroace": "aroace", "nonbinary": "nonbinary", "polyamorous": "polyamorous", "poly": "poly", "gaymale": "gaymale", "gayfemale": "gayfemale", "genderqueer": "genderqueer", "omni": "omni" };
+    let crossBorder = { "lesbian": "lesbian", "gay": "gay", "bisexual": "bisexual", "trans": "trans", "queer": "queer", "intersex": "intersex", "asexual": "asexual", "agender": "agender", "aroace": "aroace", "aromantic": "aromantic", "nonbinary": "nonbinary", "polyamorous": "polyamorous", "poly": "poly", "gaymale": "gaymale", "gayfemale": "gayfemale", "genderqueer": "genderqueer", "omni": "omni", "ally": "ally" };
     if (border_vr && crossBorder[border_vr.toLowerCase()]) {
         pBorder = border_vr.toLowerCase();
     };
@@ -796,69 +797,6 @@ a.post('/v1/create_url', async function (req, res) {
         isLimitNum = limit_vr;
     };
 
-    if (req.file) {
-        var up = upload.single('ico');
-
-        up(req, res, async function (e) {
-            if (e) console.log(e);
-            if (e) return res.status(500).json({ OK: false, error: `${e}` });
-            if (!e) {
-                let file = null;
-                let fileExtension = null;
-                let upl = null;
-                let authT = null;
-                if (req.file) file = req.file;
-                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
-                if (fileExtension) fileExtension = fileExtension[0];
-
-                if (file && file.mimetype !== "image/gif") {
-                    await sharp(file.buffer).resize({ width: 128, height: 128 }).toBuffer().then(data => {
-                        if (data) file.buffer = data; file.size = data.length;
-                    });
-                };
-
-                b2.getUploadUrl({
-                    bucketId: 'd5afb20446dd61128b590419'
-                }).then(tt => {
-                    upl = tt.data.uploadUrl; 
-                    authT = tt.data.authorizationToken;
-
-                    b2.uploadFile({
-                        uploadUrl: upl,
-                        uploadAuthToken: authT,
-                        fileName: randomUUID(),
-                        contentLength: file.size,
-                        mime: file.mimetype,
-                        data: file.buffer,
-                        hash: '',
-                        onUploadProgress: (event) => {}
-                    }).then(async fin => {
-                        await new short_url({
-                            author: u._id,
-                            link: encrypt(url_vr),
-                            id: token,
-                            title: encrypt(title_vr),
-                            subtitle: encrypt(subtitle_vr),
-                            thumbnail: encrypt(`https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`),
-                            order: "99",
-                            limitClick: isLimitNum,
-                            clicks: [],
-                            highlight,
-                            hidden: false,
-                            blocked: false,
-                            limitClicks: isLimit,
-                            blocked_reason: "",
-                            date: Date.now(),
-                            uuid: randomUUID()
-                        }).save();
-                    });
-                });
-
-                return res.json({ OK: true, status: 200, text: `Created link` });
-            };
-        });
-    };
-
     await new short_url({
         author: u._id,
         link: encrypt(url_vr),
@@ -866,6 +804,7 @@ a.post('/v1/create_url', async function (req, res) {
         title: encrypt(title_vr),
         subtitle: encrypt(subtitle_vr),
         thumbnail: encrypt(thumb),
+        thumbnail_pro_id: "",
         order: "99",
         limitClick: isLimitNum,
         clicks: [],
@@ -891,6 +830,19 @@ a.get('/v1/remove_url/:uuid', async function (req, res) {
     let urls = await short_url.findOne({ author: u._id, uuid: req.params.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
     if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
 
+    if (urls.thumbnail_pro_id !== "") {
+        b2.getFileInfo({
+            fileId: urls.thumbnail_pro_id
+        }).then(async tt => {
+            let data = tt.data
+            b2.deleteFileVersion({
+                fileId: data.fileId,
+                fileName: data.fileName
+            });
+        });
+    };
+
+    delete faviconCache[urls.id];
     await short_url.deleteOne({ uuid: urls.uuid });
     res.json({ OK: true, status: 200, status: `Removed link` });
 });
@@ -934,8 +886,108 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
     if (url_vr.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
     if (url_vr.includes('twitter.com')) thumb = "https://ferret.page/public/i/assets/twitter_normal.png";
 
+    delete faviconCache[urls.id];
     await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), thumbnail: encrypt(thumb), order: parseInt(order_vr), link: encrypt(url_vr), highlight, limitClick: isLimitNum, limitClicks } });
     res.json({ OK: true, status: 200, text: `Updated link` });
+});
+
+a.post('/v1/edit_url/:uuid/icon', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+        var up = upload.single('favicon');
+
+        let u = await user.findOne({ session }).lean();
+        if (!u) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
+        if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `User is blocked` });
+        if (!u.pro) return res.status(403).json({ OK: false, status: 403, error: `User must be on an upgraded plan to view this endpoint` });
+        let urls = await short_url.findOne({ author: u._id, uuid: req.params.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+        if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
+
+        up(req, res, async function (e) {
+            if (e) console.log(e);
+            if (e) return res.status(500).json({ OK: false, error: `${e}` });
+            if (!e) {
+                let file = null;
+                let fileExtension = null;
+                let upl = null;
+                let authT = null;
+                if (req.file) file = req.file;
+                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
+                if (fileExtension) fileExtension = fileExtension[0];
+
+                if (!file) {
+                    urls.link = decrypt(urls.link);
+                    urls.thumbnail = decrypt(urls.thumbnail);
+                    let current = urls.thumbnail;
+                    let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${urls.link}&size=128`;
+                    if (urls.link.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
+                    if (urls.link.includes('twitter.com')) thumb = "https://ferret.page/public/i/assets/twitter_normal.png";
+
+                    if (current.includes('backblaze') && urls.thumbnail_pro_id !== "") {
+                        b2.getFileInfo({
+                            fileId: urls.thumbnail_pro_id
+                        }).then(async tt => {
+                            let data = tt.data;
+
+                            b2.deleteFileVersion({
+                                fileId: data.fileId,
+                                fileName: data.fileName
+                            });
+                        });
+                    };
+                    delete faviconCache[urls.id];
+                    await short_url.updateOne({ uuid: urls.uuid }, { $set: { thumbnail: encrypt(thumb), thumbnail_pro_id: "" } });
+                    return res.json({ OK: true, status: 200, text: `Updated icon` });
+                }
+
+                if (file && file.mimetype !== "image/gif") {
+                    await sharp(file.buffer).resize({ width: 128, height: 128 }).toBuffer().then(data => {
+                        if (data) file.buffer = data; file.size = data.length;
+                    });
+                };
+
+                if (urls.thumbnail_pro_id !== "") {
+                    b2.getFileInfo({
+                        fileId: urls.thumbnail_pro_id
+                    }).then(async tt => {
+                        let data = tt.data
+                        b2.deleteFileVersion({
+                            fileId: data.fileId,
+                            fileName: data.fileName
+                        });
+                    });
+                };
+
+                b2.getUploadUrl({
+                    bucketId: 'd5afb20446dd61128b590419'
+                }).then(tt => {
+                    upl = tt.data.uploadUrl; 
+                    authT = tt.data.authorizationToken;
+
+                    b2.uploadFile({
+                        uploadUrl: upl,
+                        uploadAuthToken: authT,
+                        fileName: randomUUID(),
+                        contentLength: file.size,
+                        mime: file.mimetype,
+                        data: file.buffer,
+                        hash: '',
+                        onUploadProgress: (event) => {}
+                    }).then(async fin => { await short_url.updateOne({ uuid: urls.uuid }, { $set: { thumbnail: encrypt(`https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`), thumbnail_pro_id: fin.data.fileId } }); delete faviconCache[urls.id]; });
+                });
+
+                delete faviconCache[urls.id];
+                res.json({ OK: true, status: 200, text: `Updated icon` });
+            };
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
 });
 
 a.post('/v1/account/settings/email', async function (req, res) {
@@ -1435,7 +1487,7 @@ a.post('/admin/account/edit', async function (req, res) {
     if (pronouns_vr && pronoun && pronoun[pronouns_vr.toLowerCase()]) pronoun = pronoun[pronouns_vr.toLowerCase()];
 
     let pBorder = 'none';
-    let crossBorder = { "lesbian": "lesbian", "gay": "gay", "bisexual": "bisexual", "trans": "trans", "queer": "queer", "intersex": "intersex", "asexual": "asexual", "agender": "agender", "aroace": "aroace", "nonbinary": "nonbinary", "polyamorous": "polyamorous", "poly": "poly", "gaymale": "gaymale", "gayfemale": "gayfemale", "genderqueer": "genderqueer", "omni": "omni" };
+    let crossBorder = { "lesbian": "lesbian", "gay": "gay", "bisexual": "bisexual", "trans": "trans", "queer": "queer", "intersex": "intersex", "asexual": "asexual", "agender": "agender", "aroace": "aroace", "aromantic": "aromantic", "nonbinary": "nonbinary", "polyamorous": "polyamorous", "poly": "poly", "gaymale": "gaymale", "gayfemale": "gayfemale", "genderqueer": "genderqueer", "omni": "omni", "ally": "ally" };
     if (border_vr && crossBorder[border_vr.toLowerCase()]) {
         pBorder = border_vr.toLowerCase();
     };

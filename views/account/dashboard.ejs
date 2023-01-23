@@ -9,9 +9,9 @@
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
     <div id="editDisplay" class="">
-      <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard: <div class="w-fit m-auto text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search mt-2" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Preview page" onclick="previewDisplay()" viewBox="0 0 16 16"> <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/> </svg></div></h1>
+      <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard: <div class="w-fit m-auto text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search mt-2 hover:cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Preview page" onclick="previewDisplay()" viewBox="0 0 16 16"> <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/> </svg></div></h1>
       <div class="w-[85%] lg:w-1/2 m-auto break-words p-2 text-lg"><% if (acc.pro) {%>
-          <div class="m-auto" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= acc.uuid %>" class="m-auto rounded object-fill lg:w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
+          <div class="m-auto w-fit hover:cursor-pointer" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= acc.uuid %>" class="m-auto rounded object-fill lg:w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
           <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-4 <% if (acc.banner !== '') {%> -mt-[85px]<%}%>" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
           <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
           <div class="hidden" role="alert" id="error"></div>
@@ -57,7 +57,7 @@
                   <div class="input-group mb-3">
                     <label class="input-group-text" for="borderGroup">Border</label>
                     <select class="form-select" id="borderGroup" name="border_vr">
-                      <option value="none">None</option><% let border = [ "lesbian", "gay", "bisexual", "trans", "queer", "intersex", "asexual", "agender", "aroace", "nonbinary", "polyamorous", "poly", "gaymale", "gayfemale", "genderqueer", "omni" ]; border.forEach((elm) => { let short; if (elm == 'lesbian') short = 'Lesbian'; if (elm == 'gay') short = 'Gay'; if (elm == 'bisexual') short = 'Bisexual'; if (elm == 'trans') short = 'Trans'; if (elm == 'queer') short = 'Queer'; if (elm == 'intersex') short = 'Intersex'; if (elm == 'asexual') short = 'Asexual'; if (elm == 'agender') short = 'Agender'; if (elm == 'aroace') short = 'Aroace'; if (elm == 'nonbinary') short = 'Non-Binary'; if (elm == 'polyamorous') short = 'Polyamorous'; if (elm == 'poly') short = 'Poly'; if (elm == 'gaymale') short = 'Gay Male'; if (elm == 'gayfemale') short = 'Gay Female'; if (elm == 'genderqueer') short = 'Genderqueer'; if (elm == 'omni') short = 'Omni'; if (elm !== acc.personal_border) {%>
+                      <option value="none">None</option><% let border = [ "lesbian", "gay", "bisexual", "trans", "queer", "intersex", "asexual", "agender", "aroace", "aromantic", "nonbinary", "polyamorous", "poly", "gaymale", "gayfemale", "genderqueer", "omni", "ally" ]; border.forEach((elm) => { let short; if (elm == 'lesbian') short = 'Lesbian'; if (elm == 'gay') short = 'Gay'; if (elm == 'bisexual') short = 'Bisexual'; if (elm == 'trans') short = 'Trans'; if (elm == 'queer') short = 'Queer'; if (elm == 'intersex') short = 'Intersex'; if (elm == 'asexual') short = 'Asexual'; if (elm == 'agender') short = 'Agender'; if (elm == 'aroace') short = 'Aroace'; if (elm == 'aromantic') short = 'Aromantic'; if (elm == 'nonbinary') short = 'Non-Binary'; if (elm == 'polyamorous') short = 'Polyamorous'; if (elm == 'poly') short = 'Poly'; if (elm == 'gaymale') short = 'Gay Male'; if (elm == 'gayfemale') short = 'Gay Female'; if (elm == 'genderqueer') short = 'Genderqueer'; if (elm == 'omni') short = 'Omni'; if (elm == 'ally') short = 'Ally'; if (elm !== acc.personal_border) {%>
                       <option value="<%=elm%>"><%=short%></option><%} else {%><option value="<%=elm%>" selected><%=short%></option><%}})%>
                     </select>
                   </div>
@@ -132,7 +132,7 @@
           <div class="p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => {%>
               <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white dark:border-white rounded-lg w-[85%] lg:w-[320px] text-center m-auto p-4">
                   <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-pulse<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
-                      <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+                      <img src="/favicon/<%=elm.id%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
                   </div>
                   <div class="m-auto break-full">
                       <%=elm.title%><% if (elm.subtitle !== "") {%>
@@ -142,7 +142,9 @@
                       <input type="text" class="hidden" name="dismiss_vr" value="<%=elm.uuid%>">
                       <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Remove"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-x-square-fill align-middle mt-1 m-auto w-fit hover:cursor-pointer" id="<%=elm.uuid%>-dismiss" onclick="dismiss('<%=elm.uuid%>')" viewBox="0 0 16 16"><path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/></svg></span>
                       <input type="text" class="hidden" name="edit_vr" value="<%=elm.uuid%>">
-                      <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square align-middle mt-1 m-auto w-fit hover:cursor-pointer" draggable="false" data-bs-toggle="modal" data-bs-target="#edit-<%=elm.uuid%>" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg></span>
+                      <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square align-middle mt-1 m-auto w-fit hover:cursor-pointer" draggable="false" data-bs-toggle="modal" data-bs-target="#edit-<%=elm.uuid%>" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg></span><% if (acc && acc.pro) {%>
+                      <input type="text" class="hidden" name="favicon_vr" value="<%=elm.uuid%>">
+                      <span data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Edit Icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-image align-middle mt-1 m-auto w-fit hover:cursor-pointer" draggable="false" data-bs-toggle="modal" data-bs-target="#favedit-<%=elm.uuid%>" viewBox="0 0 16 16"><path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/></svg></span><%}%>
                   </div>
               </div>
               <form id="<%=elm.uuid%>-form">
@@ -198,6 +200,41 @@
                             <div class="modal-footer">
                               <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
                               <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Save changes</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+                <form id="<%=elm.uuid%>-fav-form">
+                  <div class="modal fade" id="favedit-<%=elm.uuid%>" tabindex="-1" aria-labelledby="favedit-<%=elm.uuid%>" aria-hidden="true">
+                      <div class="modal-dialog my-8 md:my-2">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title text-black" id="editModalLabelfav">Edit Link Icon <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                          <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                        </div>
+                        <div class="modal-body text-black">
+                          <div id="errorFav-<%=elm.uuid%>" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                          <div class="form-row align-items-center">
+                            <div class="form-row align-items-center">
+                              <div class="col-auto" style="width: 75%; margin: auto;">
+                                <div class="w-fit m-auto"><img src="/favicon/<%=elm.id%>" class="w-[128px] h-[128px] rounded" draggable="false" id="faviconImage"></div>
+                                <div class="my-2"></div>
+                                <label class="sr-only" for="FaviconFile-<%=elm.uuid%>">Favicon</label>
+                                <input type="file" class="form-control" id="FaviconFile-<%=elm.uuid%>" name="icon" accept="image/*">
+                                <div class="my-1"></div>
+                              </div>
+                            </div>
+                            <div class="w-fit m-auto">
+                              <div class="hidden" id="Favspinner-<%=elm.uuid%>" role="status">
+                                  <span class="visually-hidden">Loading...</span>
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
+                              <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Upload Icon</button>
                             </div>
                           </div>
                         </div>
@@ -288,7 +325,7 @@
       </div>
     </div>
     <div id="previewDisplay" class="hidden">
-      <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard: <div class="w-fit m-auto text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search mt-2" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Preview page" onclick="previewDisplay()" viewBox="0 0 16 16"> <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/> </svg></div></h1>
+      <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your dashboard: <div class="w-fit m-auto text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search mt-2 hover:cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Preview page" onclick="previewDisplay()" viewBox="0 0 16 16"> <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/> </svg></div></h1>
       <div id="background-image-wrapper" style="background-image: url('/banner/<%=acc.uuid%>'); background-repeat: no-repeat; background-size: cover; background-position: center;">
         <div class="w-fit m-auto break-words p-2 text-lg text-center dark:text-white">
             <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12" id="mainBorder">
@@ -309,7 +346,7 @@
       <div class="w-[90%] lg:w-fit p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => { if (!elm.limitClicks) {%>
         <% if (!elm.link.includes('youtube.com/watch?v=')) {%><div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded-lg m-auto w-[85%] lg:w-[320px] p-4">
             <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-[pulse_2.5s_ease-out_infinite]<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
-                <img src="<%=elm.thumbnail%>" class="w-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+                <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
             </div>
             <div class="m-auto text-center">
                 <%=elm.title%><% if (elm.subtitle !== "") {%>
@@ -564,7 +601,8 @@
               $('#errorBn').text(e);
               $('#errorBn').addClass('alert alert-danger my-1');
             });
-        });<%}%><% if (links) {%>
+        });
+        <%}%><% if (links) {%>
             function dismiss(uuid) {
                 fetch(`/api/v1/remove_url/${uuid}`, { method: 'get' }).then((r)=>r.json()).then((w)=>{
                     $('#error').text('');
@@ -603,7 +641,34 @@
                   $('#errorLi-<%=elm.uuid%>').text(e);
                   $('#errorLi-<%=elm.uuid%>').addClass('alert alert-danger my-1');
                 });
-            });<%})%>
+            });<% if (acc.pro) {%>
+            $('#<%=elm.uuid%>-fav-form').submit(function (e) {
+              e.preventDefault();
+              const formData = new FormData();
+              let d = document.getElementById('FaviconFile-<%=elm.uuid%>');
+              let av = document.getElementById('Favspinner-<%=elm.uuid%>');
+              let dd = new FileReader();
+              formData.append("favicon", d.files[0]);
+
+              av.setAttribute('class', 'm-auto spinner-border');
+              fetch('/api/v1/edit_url/<%=elm.uuid%>/icon', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+                $('#errorFav-<%=elm.uuid%>').text('');
+                $('#errorFav-<%=elm.uuid%>').toggleClass(false);
+                av.setAttribute('class', 'hidden');
+                if (w.OK) {
+                  document.getElementById('faviconImage').src = `/favicon/<%=elm.id%>?time=${Date.now()}`;
+                  $('#errorFav-<%=elm.uuid%>').text(w.text);
+                  $('#errorFav-<%=elm.uuid%>').addClass('alert alert-success my-1');
+                } else {
+                  $('#errorFav-<%=elm.uuid%>').text(w.error);
+                  $('#errorFav-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+                }
+              }).catch(e => {
+                console.log(e);
+                $('#errorFav-<%=elm.uuid%>').text(e);
+                $('#errorFav-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+              });
+            });<%}})%>
         <%}%>
 
         fetch('/api/v1/account?name=<%=acc.nameToFind%>').json();
