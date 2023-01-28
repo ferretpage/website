@@ -44,7 +44,7 @@ a.get('/', async function (req, res) {
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
 
-    res.render('home/index', { theme, acc });
+    res.render('home/index', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/register', async function (req, res) {
@@ -58,7 +58,7 @@ a.get('/register', async function (req, res) {
     
     if (req.query.code) res.cookie('reserve_code', req.query.code.toUpperCase());
 
-    res.render('auth/register', { theme, acc });
+    res.render('auth/register', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/signin', async function (req, res) {
@@ -72,7 +72,7 @@ a.get('/signin', async function (req, res) {
 
     let code = randomUUID();
     authCode[code] = code;
-    res.render('auth/signin', { theme, acc, code });
+    res.render('auth/signin', { theme, acc, code, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/signout', async function (req, res) {
@@ -108,7 +108,7 @@ a.get('/tos', async function (req, res) {
     if (l && !l.tos[0]) l = null;
     if (l && l.tos[0]) l = l.tos[0];
 
-    res.render('home/tos', { theme, acc, date: l });
+    res.render('home/tos', { theme, acc, date: l, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/dashboard', async function (req, res) {
@@ -130,11 +130,11 @@ a.get('/dashboard', async function (req, res) {
     if (links) links = JSON.parse(links);
     if (req.query.code) code = req.query.code.toUpperCase();
 
-    qrcode.toDataURL(`https://ferret.page/${acc.name}`, function (err, url) {
+    qrcode.toDataURL(`${req.protocol}://${req.hostname}/${acc.name}`, function (err, url) {
         let qr = null;
         if (url) qr = url;
 
-        res.render('account/dashboard', { theme, acc, links, qr, code });
+        res.render('account/dashboard', { theme, acc, links, qr, code, domain: `${req.protocol}://${req.hostname}` });
     });
 });
 
@@ -152,7 +152,7 @@ a.get('/settings', async function (req, res) {
     if (acc.status == 403) return res.redirect('/');
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
-    res.render('account/settings', { theme, acc });
+    res.render('account/settings', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/settings/switch_account', async function (req, res) {
@@ -170,7 +170,7 @@ a.get('/settings/switch_account', async function (req, res) {
     if (!acc.pro) return res.redirect('/');
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
-    res.render('account/switch', { theme, acc });
+    res.render('account/switch', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/analytics', async function (req, res) {
@@ -187,7 +187,7 @@ a.get('/analytics', async function (req, res) {
     if (acc.status == 403) return res.redirect('/');
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
-    res.render('account/analytics', { theme, acc });
+    res.render('account/analytics', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/admin/panel', async function (req, res) {
@@ -217,7 +217,7 @@ a.get('/admin/panel', async function (req, res) {
 
     users.sort((a, b) => { return b.date - a.date });
 
-    res.render('admin/panel', { theme, acc, users });
+    res.render('admin/panel', { theme, acc, users, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/help', async function (req, res) {
@@ -234,7 +234,7 @@ a.get('/help', async function (req, res) {
         article.push(file.split('.')[0]);
     });;
 
-    res.render(`home/help`, { theme, acc, article });
+    res.render(`home/help`, { theme, acc, article, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/help/:id', async function (req, res) {
@@ -247,7 +247,7 @@ a.get('/help/:id', async function (req, res) {
     };
 
     if (!fs.existsSync(path.join(__dirname, `../views/help/${req.params.id.toLowerCase()}.ejs`))) return res.render('error', { errorMessage: `This article does not exist.`, theme: theme, acc });
-    res.render(`help/${req.params.id.toLowerCase()}`, { theme, acc });
+    res.render(`help/${req.params.id.toLowerCase()}`, { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/l/:uuid', async function (req, res) {
@@ -481,7 +481,7 @@ a.get('/:user', async function (req, res) {
         }
     }
 
-    res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links });
+    res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/:uuid/edit', async function (req, res) {
@@ -521,7 +521,7 @@ a.get('/:uuid/edit', async function (req, res) {
         }
     }
 
-    res.render('admin/edit', { theme: theme, acc, view: v, badge: badges, links });
+    res.render('admin/edit', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
 });
 
 module.exports = a;

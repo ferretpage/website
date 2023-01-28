@@ -7,7 +7,7 @@
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
-    <h1 class="font-bold text-3xl text-center my-2 mx-2 dark:text-white">Ferret Registration</h1>
+    <h1 class="font-bold text-3xl text-center my-2 mx-2 dark:text-white">Account Registration</h1>
     <div class="w-fit m-auto dark:text-white">
         <form class="m-auto" id="form">
             <div class="hidden" role="alert" id="error"></div>
@@ -27,13 +27,13 @@
             <div class="col-auto"> 
                 <label for="username_vr" class="form-label">Username</label>
                 <div class="input-group mb-3">
-                  <span class="input-group-text" id="vripurl">https://ferret.page/</span>
+                  <span class="input-group-text" id="vripurl"><%=domain%>/</span>
                   <input type="text" class="form-control" id="username_vr" name="Username_VR" aria-describedby="vripurl" autocomplete="off" required>
                 </div>
             </div>
             <div class="mb-3 form-check">
               <input type="checkbox" class="form-check-input" id="Check1" name="TOS_VR">
-              <label class="form-check-label" for="Check1">Accept <span><a href="/tos" class="hover:underline" target="_blank">ToS</a></span></label>
+              <label class="form-check-label" for="Check1">Accept <span><a href="/tos" class="hover:underline" target="_blank">Terms of Service</a></span></label>
             </div>
             <button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="register_button">Submit</button>
             <div class="my-2"></div>

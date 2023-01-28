@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html class="<%= theme %>" lang="en" id="html">
 <head>
-    <link rel="icon" href="https://ferret.page/avatar/<%=view.uuid%>">
-    <link rel="icon" rel="apple-touch-icon" href="https://ferret.page/avatar/<%=view.uuid%>">
+    <link rel="icon" href="<%=domain%>/avatar/<%=view.uuid%>">
+    <link rel="icon" rel="apple-touch-icon" href="<%=domain%>/avatar/<%=view.uuid%>">
 
     <meta property="twitter:title" content="<%=view.name%>'s Profile | Ferret">
     <meta property="twitter:description" content="<% if (view.bio !== '') {%><%=view.bio%><%} else {%>This user has not set a bio yet<%}%>">
-    <meta property="twitter:image" content="https://ferret.page/avatar/<%=view.uuid%>">
-    <meta property="twitter:url" content="https://ferret.page/<%=view.name%>">
+    <meta property="twitter:image" content="<%=domain%>/avatar/<%=view.uuid%>">
+    <meta property="twitter:url" content="<%=domain%>/<%=view.name%>">
     <link rel="stylesheet" href="/css/pride.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
