@@ -18,8 +18,8 @@
             <p class="w-fit m-auto">Last Login: <time data-time="<%=view.last_login%>"></time></p>
             <p class="w-fit m-auto">Created At: <time data-time="<%=view.createdAt%>"></time></p>
             <div class="flex flex-auto gap-2 w-fit m-auto">
-              <p class="w-fit m-auto">Is banned: <%=view.blocked%></p>
-              <p class="w-fit m-auto">Is Pro User: <%=view.pro%></p>
+              <p class="w-fit m-auto">Is banned: <a href="/api/admin/block_user/<%=view.name%>?type=blocked" class="w-fit m-auto hover:underline hover:text-current"><%=view.blocked%></a></p>
+              <p class="w-fit m-auto">Is Pro User: <a href="/api/admin/upgrade_plan/<%=view.name%>?plan=<% if (view.pro) {%>free<%} else {%>pro<%}%>" class="w-fit m-auto hover:underline hover:text-current"><%=view.pro%></a></p>
               <p class="w-fit m-auto">Is 2FA Enabled: <% if (view.TFA) {%>true<%} else {%>false<%}%></p>
             </div>
             <div class="w-fit p-4 m-auto flex flex-wrap gap-2 dark:text-white">

@@ -116,6 +116,7 @@ a.get('/v1/auth', async function (req, res) {
     s.bio = decrypt(s.bio);
     s.url = decrypt(s.url);
     s.location = decrypt(s.location);
+    s.fonts = decrypt(s.fonts);
 
     if (links && links.length < 1) links = null;
     if (links && links.length > 0) {
@@ -162,6 +163,7 @@ a.get('/v1/account', async function (req, res) {
 
     s.bio = decrypt(s.bio);
     s.url = decrypt(s.url);
+    s.fonts = decrypt(s.fonts);
 
     s.inactive = false;
     if (Date.now() - 2.234e+10 > s.last_login) s.inactive = true;
@@ -282,6 +284,7 @@ a.post('/v1/register', async function (req, res) {
             location: "",
             reason: "",
             personal_border: "none",
+            fonts: encrypt(""),
             linklimit: "25",
             links: [],
             socials: [],
@@ -582,6 +585,24 @@ a.post('/v1/account/edit', async function (req, res) {
     await user.updateOne({ session }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme, personal_border: pBorder } });
 
     res.json({ OK: true, status: 200, status: `Updated profile` });
+});
+
+a.post('/v1/account/edit/font', async function (req, res) {
+    let { session } = req.cookies;
+    let { fonts_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    if (!fonts_vr) return res.status(403).json({ OK: false, status: 403, error: `You must have a font selected` });
+
+    let font = {"none": "", "Caveat": "Caveat", "Kanit": "Kanit", "Oswald": "Oswald", "Poppins": "Poppins", "SourceCodePro": "Source Code Pro", "Aldrich": "Aldrich"};
+    font = font[fonts_vr];
+
+    if (!font && fonts_vr !== 'none') return res.status(403).json({ OK: false, status: 403, error: `Invalid Font` });
+
+    await user.updateOne({ session }, { $set: { fonts: encrypt(font) } });
+    res.json({ OK: true, status: 200, status: `Updated profile font`, updated_to: font });
 });
 
 a.post('/v1/account/edit/avatar', async function (req, res) {
@@ -1677,6 +1698,65 @@ a.post('/admin/account/edit/banner', async function (req, res) {
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, error: e });
+    };
+});
+
+a.get('/admin/upgrade_plan/:name', async function (req, res) {
+    let { session } = req.cookies;
+    let { plan } = req.query;
+    let { name } = req.params;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!plan || !name) return res.sendStatus(404);
+
+        let u = await user.findOne({ nameToFind: name.toUpperCase() }).lean();
+        if (!u) return res.status(404).json({ OK: false, status: 404, error: `User not found` });
+        if (u.blocked) return res.status(404).json({ OK: false, status: 403, error: `User is blocked` });
+
+        if (!u.pro && plan.toLowerCase() == "pro") {
+            await user.updateOne({ uuid: u.uuid }, { $set: { pro: true, linklimit: "50", theme: "dark" } });
+        };
+        if (u.pro && plan.toLowerCase() == "free") {
+            await user.updateOne({ uuid: u.uuid }, { $set: { pro: false, linklimit: "25", theme: "" } });
+        };
+
+        res.redirect(`/${u.uuid}/edit`);
+        // res.json({ OK: true, status: 200 });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.get('/admin/block_user/:name', async function (req, res) {
+    let { session } = req.cookies;
+    let { type } = req.query;
+    let { name } = req.params;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!type || !name) return res.sendStatus(404);
+
+        let u = await user.findOne({ nameToFind: name.toUpperCase() }).lean();
+        if (!u) return res.status(404).json({ OK: false, status: 404, error: `User not found` });
+
+        let blocked = false;
+        let hidden = false;
+
+        if (type == "blocked" && !u.blocked) blocked = true;
+        if (type == "hidden" && !u.hidden) { hidden = true; blocked = true; };
+
+        await user.updateOne({ uuid: u.uuid }, { $set: { blocked, hidden } });
+
+        res.redirect(`/${u.uuid}/edit`);
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
     };
 });
 

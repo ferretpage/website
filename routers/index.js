@@ -462,6 +462,7 @@ a.get('/:user', async function (req, res) {
     v.bio = decrypt(v.bio);
     v.url = decrypt(v.url);
     v.location = decrypt(v.location);
+    v.fonts = decrypt(v.fonts);
     if (v.pro && v.theme == "dark") theme = "dark";
 
     if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };

@@ -9,7 +9,10 @@
     <meta property="twitter:image" content="https://ferret.page/avatar/<%=view.uuid%>">
     <meta property="twitter:url" content="https://ferret.page/<%=view.name%>">
     <link rel="stylesheet" href="/css/pride.css">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Bebas+Neue&family=Black+Ops+One&family=Caveat&family=Kanit:wght@300&family=Oswald:wght@300;400&family=Poppins:wght@300;400&family=Press+Start+2P&family=Source+Code+Pro:wght@300&display=swap" rel="stylesheet">
+
     <%- include('../meta/index', { title: view.name+"'s Profile" }); %>
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
@@ -17,7 +20,7 @@
         <div class="w-fit m-auto break-words p-2 text-lg text-center dark:text-white">
             <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12" id="mainBorder">
                 <img src="/avatar/<%= view.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-2 bg-zinc-300" style="margin: auto; margin-top: -45px;" draggable="false">
-                <h2 class="font-bold text-4xl inline-flex"><%= view.displayName %><% if (view.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (view.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (view.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2>
+                <h2 class="font-bold text-4xl inline-flex" style="font-family: '<% if (view.fonts && view.fonts !== '') {%><%=view.fonts%><%} else {%>Cabin<%}%>', sans-serif;"><%= view.displayName %><% if (view.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (view.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (view.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2>
                 <div class="flex flex-wrap gap-2"><% if (view.location && view.location !== "" && view.location !== " ") {%>
                     <h4 class="font-bold text-xl text-gray-600 dark:text-gray-400 flex w-fit m-auto"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="gray" class="bi bi-geo-alt-fill mt-[6.5px]" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><%=view.location%></h4>
                 <%}%><% if (view.pronouns && view.pronouns !== "") {%>

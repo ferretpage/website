@@ -50,6 +50,7 @@ const user = mongo.Schema({
   url: String,
   location: String,
   theme: String,
+  fonts: String,
   personal_border: String,
   nameHistory: Array,
   verified: Boolean,
