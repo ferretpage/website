@@ -15,6 +15,7 @@ const short_url = mongo.Schema({
   order: String,
   hidden: Boolean,
   blocked: Boolean,
+  warn: Boolean,
   blocked_reason: String,
   date: Date,
   uuid: String

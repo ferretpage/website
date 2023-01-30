@@ -25,7 +25,7 @@ const user = mongo.Schema({
       date: Date
     }
   ],
-  socials: Array,
+  socials: Object,
   connectedUser: [
     {
       user: {

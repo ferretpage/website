@@ -46,7 +46,7 @@ app.get('*', async function (req, res) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
-    res.render('error', { errorMessage: `Could not find page.`, theme, acc });
+    res.render('error', { errorMessage: `Could not find page.`, theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 httpServer.listen(process.env.PORT || 80, async function () {

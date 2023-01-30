@@ -246,13 +246,13 @@ a.get('/help/:id', async function (req, res) {
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
 
-    if (!fs.existsSync(path.join(__dirname, `../views/help/${req.params.id.toLowerCase()}.ejs`))) return res.render('error', { errorMessage: `This article does not exist.`, theme: theme, acc });
+    if (!fs.existsSync(path.join(__dirname, `../views/help/${req.params.id.toLowerCase()}.ejs`))) return res.render('error', { errorMessage: `This article does not exist.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
     res.render(`help/${req.params.id.toLowerCase()}`, { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/l/:uuid', async function (req, res) {
     let s = await user.findOne({ session: req.cookies.session }).lean();
-    let urls = await short_url.findOne({ id: req.params.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+    let urls = await short_url.findOne({ id: req.params.uuid, blocked: false }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
     if (!urls) return res.redirect('/');
     
     let data = urls;
@@ -267,8 +267,24 @@ a.get('/l/:uuid', async function (req, res) {
         };
     };
 
+    if (urls.warn) return res.redirect(`/warning?id=${req.params.uuid}`);
     res.redirect(decrypt(data.link));
     // res.json({ OK: true, status: 200, return: decrypt(data.link), uuid: data.uuid });
+});
+
+a.get('/warning', async function (req, res) {
+    let { session, theme } = req.cookies;
+    let acc = null;
+
+    if (session) {
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
+    };
+
+    let urls = await short_url.findOne({ id: req.query.id, blocked: false }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+    if (!urls) return res.redirect('/');
+
+    res.render('warning_link', { theme: theme, acc, url: `${req.protocol}://${req.hostname}/l/${urls.id}`, forward_url: decrypt(urls.link), domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/avatar/:uuid.:ext', async function (req, res) {
@@ -454,8 +470,8 @@ a.get('/:user', async function (req, res) {
     if (acc && acc.blocked) return res.redirect('/help/suspended-accounts');
     let v = await user.findOne({ nameToFind: req.params.user.toUpperCase(), hidden: false }).lean();
 
-    if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc });
-    if (v.hidden || v.blocked) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc });
+    if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
+    if (v.hidden || v.blocked) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
     let badges = await badge.findOne({ "users.user": v._id, "users.disabled": false }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 
     v.apiKey = decrypt(v.apiKey);

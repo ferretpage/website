@@ -123,7 +123,7 @@ a.get('/v1/auth', async function (req, res) {
         links.forEach((elm) => { elm.link = decrypt(elm.link); elm.title = decrypt(elm.title); elm.subtitle = decrypt(elm.subtitle); elm.thumbnail = decrypt(elm.thumbnail) });
 
         links = JSON.stringify(links);
-    }
+    };
 
     let result = { OK: true, status: 200, account: encrypt(JSON.stringify(s)), links: encrypt(links) };
     res.setHeader('Content-Type', 'application/json');
@@ -287,7 +287,7 @@ a.post('/v1/register', async function (req, res) {
             fonts: encrypt(""),
             linklimit: "25",
             links: [],
-            socials: [],
+            socials: {},
             nameHistory: [{ username, date: Date.now(), uuid: randomUUID() }],
             views: [],
             verified: false,
@@ -605,6 +605,27 @@ a.post('/v1/account/edit/font', async function (req, res) {
     res.json({ OK: true, status: 200, status: `Updated profile font`, updated_to: font });
 });
 
+a.post('/v1/account/edit_socials', async function (req, res) {
+    let { session } = req.cookies;
+    let { SDC, discord_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let acc = await user.findOne({ session }).lean();
+
+    if (SDC) {
+        if (discord_vr && discord_vr.length < 5) return res.status(403).json({ OK: false, status: 403, error: "Length must be longer than 4" });
+        if (discord_vr && !discord_vr.includes('#')) return res.status(403).json({ OK: false, status: 403, error: "You must include a valid tag" });
+        if (discord_vr && discord_vr.includes('#') && discord_vr.split('#')[1].length > 4) return res.status(403).json({ OK: false, status: 403, error: "You must include a valid tag" });
+        if (!discord_vr) { await user.updateOne({ session }, { $set: { "socials.discord": "" } }); };
+
+        await user.updateOne({ session }, { $set: { "socials.discord": discord_vr } });
+    };
+
+    res.json({ OK: true, status: 200, status: `Updated socials` });
+});
+
 a.post('/v1/account/edit/avatar', async function (req, res) {
     let { session } = req.cookies;
 
@@ -797,12 +818,23 @@ a.post('/v1/create_url', async function (req, res) {
     let token = Math.random().toString(32).substring(8);
     let highlight = false;
     let isLimit = false;
+    let BL = false;
+    let WA = false;
     let isLimitNum = undefined;
     let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`;
 
     let checkurl = await short_url.find({ author: u._id, blocked: false }).lean();
+    let mis = await misc.findOne({ uuid: "f23b87dc-7c61-4a9e-8f7d-998b649f3614" }, { links: 1, uuid: 1 }).lean();
     if (checkurl && checkurl.length > 0) {
         if (checkurl.length > parseInt(u.linklimit)) return res.status(403).json({ OK: false, status: 403, error: `Upgrade plan to add more links` });
+    };
+
+    if (mis) {
+        mis.links.forEach(elm => {
+            if (url_vr.includes(elm.url) && elm.blocked) BL = true;
+            if (url_vr.includes(elm.url) && elm.warn && !elm.blocked) WA = true;
+        });
+        if (BL) return res.status(403).json({ OK: false, status: 403, error: `This URL is blocked, please try a different one.` });
     };
 
     if (req.body.ico) req.file = req.body.ico;
@@ -832,6 +864,7 @@ a.post('/v1/create_url', async function (req, res) {
         highlight,
         hidden: false,
         blocked: false,
+        warn: WA,
         limitClicks: isLimit,
         blocked_reason: "",
         date: Date.now(),
@@ -885,6 +918,7 @@ a.post('/v1/edit_url/:uuid', async function (req, res) {
     let isLimit = urls.limitClicks;
     let isLimitNum = parseInt(urls.limitClick);
     let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`;
+    if (decrypt(urls.thumbnail).includes('backblazeb2.com')) thumb = decrypt(urls.thumbnail);
 
     if (!title) title = decrypt(urls.title);
     if (!url_vr) url_vr = decrypt(urls.link);
@@ -1389,6 +1423,30 @@ a.get('/admin/reserved/:name', async function (req, res) {
         await misc.updateOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f" }, { $push: { reserved: [{ name: req.params.name.toLowerCase(), invite: encrypt(invite), uuid: randomUUID() }] } });
 
         res.json({ OK: true, text: `Sucessfully Reserved` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.get('/admin/link/:domain', async function (req, res) {
+    let { session } = req.cookies;
+    let { warn, blocked } = req.query;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        let warn2 = false;
+        let blocked2 = false;
+        if (warn && warn == 'true') warn2 = true;
+        if (blocked && blocked == 'true') blocked2 = true;
+        if (!warn2 && !blocked2) return res.sendStatus(403);
+        let is = await misc.findOne({ uuid: "f23b87dc-7c61-4a9e-8f7d-998b649f3614", "links.url": req.params.domain.toLowerCase() }).lean();
+        if (is) return res.sendStatus(403);
+        await misc.updateOne({ uuid: "f23b87dc-7c61-4a9e-8f7d-998b649f3614" }, { $push: { links: { url: req.params.domain.toLowerCase(), warn: warn2, blocked: blocked2 } } });
+
+        res.json({ OK: true, text: `Sucessfully Added Domain to List` });
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, error: `${e}` });

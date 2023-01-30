@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: 'Help - Warning Page' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Warning Page</h1>
+    <div>
+        <div class="w-fit m-auto p-3 break-words text-center dark:text-white">
+            <img class="rounded mb-4 w-fit m-auto border-2 border-black" src="/public/i/assets/warning-page.png" draggable="false">
+            <h2 class="font-bold text-2xl mb-2 text-center">Why am I seeing a warning page on my link: </h2>
+            <h4>To protect users from harmful or sensitive content, we will put a warning before sending you to the destination page.</h4>
+            <h4 class="mt-2 font-semibold">There are many reasons why we would do this: </h4>
+            <h4><span class="font-bold">1.</span> A user has reported an issue with the destination page.</h4>
+            <h4><span class="font-bold">2.</span> Ferret detected potentially harmful or sensitive content.</h4>
+            <h4><span class="font-bold">3.</span> The destination page is a copy of a different site</h4>
+            <h4><span class="font-bold">4.</span> The destination page is a different shortened link (An example would be bit.ly)</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+            <h2 class="font-bold text-2xl mb-2 text-center">I was wrongfully flagged: </h2>
+            <h4>If you believe your link(s) were wrongfully flagged then you can contact our support team to have it fixed. (<a class="alert-link hover:underline" href="mailto:support@ferret.page">support@ferret.page</a>)</h4>
+            <h4 class="font-semibold">Please note that we can deny your request for any or no reason at all.</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+        </div>
+    </div><br>
+</body>
+<script defer>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+</html>

@@ -5,7 +5,7 @@ const user = mongo.Schema({
     tos: Array,
     reserved: Array,
     blocked: Array,
-    hashtags: Array
+    links: Array
 });
 
 module.exports = mongo.model('misc', user);
