@@ -45,8 +45,6 @@ async function GetBucket() {
     }
 };
 
-GetBucket();
-
 const Filter = function (req, file, cb) {
     // Accept images only
     if (!file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/)) {
@@ -117,7 +115,11 @@ a.get('/v1/auth', async function (req, res) {
     s.url = decrypt(s.url);
     s.location = decrypt(s.location);
     s.fonts = decrypt(s.fonts);
+    if (req.query.views && req.query.views !== '1') delete s.views;
+    if (!req.query.views) delete s.views;
 
+    if (!req.query.links) links = null;
+    if (req.query.links && req.query.links !== '1') links = null;
     if (links && links.length < 1) links = null;
     if (links && links.length > 0) {
         links.forEach((elm) => { elm.link = decrypt(elm.link); elm.title = decrypt(elm.title); elm.subtitle = decrypt(elm.subtitle); elm.thumbnail = decrypt(elm.thumbnail) });
@@ -156,8 +158,8 @@ a.get('/v1/account', async function (req, res) {
 
     if (!name && !uuid) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
     let s;
-    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
-    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
+    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0 }).lean();
+    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0 }).lean();
 
     if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
 
@@ -241,9 +243,9 @@ a.post('/v1/register', async function (req, res) {
         let uuid = randomUUID();
         let api_key = randomUUID();
         let username = Username_VR;
-        let u = await user.find({  }, { email: 1 }).lean();
+        let u = await user.find({  }, { email: 1, signin_id: 1 }).lean();
 
-        u = u.map((h) => { if (decrypt(h.email) == email_VR.toLowerCase()) return EMAIL_ALREADY = true; });
+        u = u.map((h) => { if (h.signin_id == cryptojs.MD5(email_VR.toLowerCase()).toString().slice(24)) return EMAIL_ALREADY = true; });
         if (u && EMAIL_ALREADY) return res.status(403).json({ OK: false, status: 403, error: `E-Mail already used before` });
 
         if (username.length < 2) return res.status(400).json({ OK: false, status: 400, error: `Username must be greater than 2 characters` });
@@ -271,6 +273,7 @@ a.post('/v1/register', async function (req, res) {
             name: username,
             displayName: username,
             uuid,
+            signin_id: cryptojs.MD5(email_VR.toLowerCase()).toString().slice(24),
             password: encrypt(password_VR),
             pfp: "https://f004.backblazeb2.com/file/ferrets/user_avatar/default_avatar.png",
             pfp_id: "4_zd5afb20446dd61128b590419_f1192ca08e2cc1c4e_d20221230_m043305_c004_v0402014_t0006_u01672374785939",
@@ -351,11 +354,11 @@ a.post('/v1/signin', async function (req, res) {
     if (!code_VR) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
     if (code_VR !== authCode[code_VR]) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
 
-    let uC = await user.find({  }, { email: 1, password: 1, uuid: 1, TFA: 1, google_backup: 1, blocked: 1, flag: 1, name: 1, memorialize: 1 }).lean();
+    let uC = await user.find({  }, { email: 1, password: 1, uuid: 1, TFA: 1, google_backup: 1, blocked: 1, flag: 1, name: 1, memorialize: 1, signin_id: 1 }).lean();
     let u = null;
     // u = u.map((h) => { if (decrypt(h.email) == email_VR.toLowerCase()) { return h }; });
     uC.forEach(elm => {
-        if (elm && decrypt(elm.email) == email_VR.toLowerCase()) u = elm;
+        if (elm && decrypt(elm.email) == email_VR.toLowerCase() && elm.signin_id == cryptojs.MD5(decrypt(elm.email)).toString().slice(24)) u = elm;
     });
     if (!u) return res.status(403).json({ OK: false, status: 403, error: `Account does not exist with that E-Mail` });
     if (password_VR !== decrypt(u.password)) return res.status(403).json({ OK: false, status: 403, error: `Incorrect Password` });
@@ -636,6 +639,7 @@ a.post('/v1/account/edit/avatar', async function (req, res) {
         var up = upload.single('pfp');
 
         let u = await user.findOne({ session }).lean();
+        await GetBucket();
 
         up(req, res, async function (e) {
             if (e) console.log(e);
@@ -1053,8 +1057,8 @@ a.post('/v1/account/settings/email', async function (req, res) {
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
 
     let u = await user.findOne({ session }).lean();
-    let chcE = await user.find({  }, { name: 1, uuid: 1, email: 1 }).lean();
-    chcE = chcE.map((h) => { if (decrypt(h.email) == newEmail_vr.toLowerCase()) return h })[0];
+    let chcE = await user.find({  }, { name: 1, uuid: 1, email: 1, signin_id: 1 }).lean();
+    chcE = chcE.map((h) => { if (decrypt(h.email) == newEmail_vr.toLowerCase() && h.signin_id == cryptojs.MD5(newEmail_vr.toLowerCase()).toString().slice(24)) return h })[0];
     if (decrypt(u.email) !== currentEmail_vr.toLowerCase()) return res.status(400).json({ OK: false, status: 400, error: `Please enter your current email address` });
     if (decrypt(u.email) == newEmail_vr.toLowerCase()) return res.status(403).json({ OK: false, status: 403, error: `You can not change your email to the same email address!` });
     if (decrypt(u.email).includes('@ferret.page')) return res.status(403).json({ OK: false, status: 403, error: `You can not change the email to a staff account.` });
@@ -1093,7 +1097,7 @@ a.post('/v1/account/settings/email', async function (req, res) {
         html: `<html><h4>Hello ${u.name}!</h4></br><h3>It seems like your email address was changed to a different one. If you did not do this then please contact support: (${randomUUID()})</h3><br></html>`, // html body
     };
 
-    await user.updateOne({ session }, { $set: { email: encrypt(newEmail_vr.toLowerCase()), verified: false } });
+    await user.updateOne({ session }, { $set: { email: encrypt(newEmail_vr.toLowerCase()), verified: false, signin_id: cryptojs.MD5(newEmail_vr.toLowerCase()).toString().slice(24) } });
 
     await new notification({
         author: u._id,

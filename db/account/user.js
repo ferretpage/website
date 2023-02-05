@@ -5,6 +5,7 @@ const user = mongo.Schema({
   name: String,
   displayName: String,
   uuid: String,
+  signin_id: String,
   password: String,
   pfp: String,
   pfp_id: String,

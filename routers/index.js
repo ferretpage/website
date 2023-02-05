@@ -118,7 +118,7 @@ a.get('/dashboard', async function (req, res) {
     let code = null;
 
     if (session) {
-        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&links=1`)).json();
         if (auth && auth.status == 403) return res.redirect('/');
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account)); links = decrypt(auth.links);
     };
@@ -178,7 +178,7 @@ a.get('/analytics', async function (req, res) {
     let acc = null;
 
     if (session) {
-        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&views=1`)).json();
         if (auth && auth.status == 403) return res.redirect('/');
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
