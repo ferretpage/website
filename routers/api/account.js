@@ -158,14 +158,14 @@ a.get('/v1/account', async function (req, res) {
 
     if (!name && !uuid) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
     let s;
-    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0 }).lean();
-    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0 }).lean();
+    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0 }).lean();
+    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0 }).lean();
 
     if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
 
     s.bio = decrypt(s.bio);
-    s.url = decrypt(s.url);
     s.fonts = decrypt(s.fonts);
+    if (!s.reason) delete s.reason;
 
     s.inactive = false;
     if (Date.now() - 2.234e+10 > s.last_login) s.inactive = true;
@@ -183,7 +183,7 @@ a.get('/v1/pronouns', async function (req, res) {
     if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
     let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
 
-    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+    if (!s) s = { pronouns: null };
 
     let result = { OK: true, status: 200, pronoun: s.pronouns };
     res.setHeader('Content-Type', 'application/json');
@@ -196,7 +196,7 @@ a.get('/v1/personal_border', async function (req, res) {
     if (!name) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
     let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
 
-    if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username` });
+    if (!s) s = { personal_border: 'none' };
 
     let result = { OK: true, status: 200, border: s.personal_border };
 
@@ -211,14 +211,13 @@ a.get('/v1/inactive/:name', async function (req, res) {
     let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
 
     if (name.toLowerCase() == "help") {
-        s = await user.findOne({ nameToFind: "FERRET" }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
-        s.inactive = true;
+        s = { inactive: true };
     
         let result = { OK: true, status: 200, inactive: s.inactive };
         res.setHeader('Content-Type', 'application/json');
         return res.send(JSON.stringify(result, null, 2.5));
     };
-    if (!s) return res.status(404).json({ OK: false, status: 404, error: `Invalid username` });
+    if (!s) s = { inactive: false, last_login: Date.now() - 5000 };
 
     s.inactive = false;
     if (Date.now() - 2.234e+10 > s.last_login) s.inactive = true;
@@ -238,6 +237,7 @@ a.post('/v1/register', async function (req, res) {
         if (!TOS_VR) return res.status(403).json({ OK: false, status: 403, error: `Please confirm that you read our ToS before joining` });
         if (password_VR !== confpassword_VR) return res.status(403).json({ OK: false, status: 403, error: `Password must match.` });
     
+        let char = /^[a-zA-Z0-9_]+$/;
         let EMAIL_ALREADY = false;
         session = randomUUID();
         let uuid = randomUUID();
@@ -250,6 +250,8 @@ a.post('/v1/register', async function (req, res) {
 
         if (username.length < 2) return res.status(400).json({ OK: false, status: 400, error: `Username must be greater than 2 characters` });
         if (username.length > 15) return res.status(400).json({ OK: false, status: 400, error: `Username must be less than 16 characters` });
+
+        if (!char.test(username)) return res.status(403).json({ OK: false, status: 403, error: `Invalid regex form` });
     
         let confT = Math.random().toString(32).substring(4).toUpperCase();
         let filter = await dbMisc.findOne({ uuid: "a09ddcc5-0e36-4dc2-bb36-dc59959c114f" }, { reserved: 1, blocked: 1, _id: 0 }).lean();
@@ -270,7 +272,7 @@ a.post('/v1/register', async function (req, res) {
     
         await new user({
             email: encrypt(email_VR.toLowerCase()),
-            name: username,
+            name: encodeURIComponent(username),
             displayName: username,
             uuid,
             signin_id: cryptojs.MD5(email_VR.toLowerCase()).toString().slice(24),
@@ -290,8 +292,8 @@ a.post('/v1/register', async function (req, res) {
             fonts: encrypt(""),
             linklimit: "25",
             links: [],
-            socials: {},
-            nameHistory: [{ username, date: Date.now(), uuid: randomUUID() }],
+            socials: { "discord": "" },
+            nameHistory: [{ username: encodeURIComponent(username), date: Date.now(), uuid: randomUUID() }],
             views: [],
             verified: false,
             vrverified: false,
@@ -342,6 +344,7 @@ a.post('/v1/register', async function (req, res) {
         res.json({ OK: true, status: 200 });
     } catch (e) {
         console.log(e);
+        if (e.code == 'EENVELOPE') e = "Could not send verification code to email. (Please contact support)"
         res.status(403).json({ OK: false, status: 403, error: e });
     };
 });
