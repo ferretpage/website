@@ -28,6 +28,7 @@ const avatarCache = require('./api/avatarCache');
 const bannerCache = require('./api/bannerCache');
 const faviconCache = require('./api/faviconCache');
 const authCode = require('./api/authCode');
+const Jimp = require('jimp');
 
 async function removeTOKENS() {
     await tokens.deleteMany({  });
@@ -478,7 +479,10 @@ a.get('/favicon/:id.:ext', async function (req, res) {
     if (u.thumbnail == "") return res.sendStatus(404);
 
     let icon = await (await fetch(decrypt(u.thumbnail)));
-    let buffer = await icon.arrayBuffer();
+    if (icon.status == 404) icon = await (await fetch('https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://had.contact&size=128'));
+    let image = await Jimp.read(icon.url);
+    image.resize(128, 128, Jimp.RESIZE_NEAREST_NEIGHBOR);
+    let buffer = await image.getBufferAsync(icon.headers.get('content-type'));
 
     if (req.params.ext && req.params.ext !== icon.headers.get('content-type').split('/')[1]) return res.sendStatus(404)
 
@@ -507,7 +511,10 @@ a.get('/favicon/:id', async function (req, res) {
     if (u.thumbnail == "") return res.sendStatus(404);
 
     let icon = await (await fetch(decrypt(u.thumbnail)));
-    let buffer = await icon.arrayBuffer();
+    if (icon.status == 404) icon = await (await fetch('https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://had.contact&size=128'));
+    let image = await Jimp.read(icon.url);
+    image.resize(128, 128, Jimp.RESIZE_NEAREST_NEIGHBOR);
+    let buffer = await image.getBufferAsync(icon.headers.get('content-type'));
 
     data = "data:" + icon.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
     faviconCache[req.params.id] = data;
@@ -516,7 +523,7 @@ a.get('/favicon/:id', async function (req, res) {
         'Content-Type': icon.headers.get('content-type'),
         'Content-Length': icon.headers.get('content-length')
     });
-    res.end(Buffer.from(buffer, 'base64'));
+    res.end(buffer, 'binary');
 });
 
 a.get('/:user', async function (req, res) {
