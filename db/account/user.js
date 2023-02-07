@@ -59,6 +59,7 @@ const user = mongo.Schema({
   ogname: Boolean,
   blocked: Boolean,
   pro: Boolean,
+  subdomain: Boolean,
   TFA: Boolean,
   pronouns: String,
   staff: Boolean,

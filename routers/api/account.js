@@ -299,6 +299,7 @@ a.post('/v1/register', async function (req, res) {
             vrverified: false,
             ogname: false,
             pro: false,
+            subdomain: false,
             blocked: false,
             pronouns: null,
             staff: false,
@@ -1766,6 +1767,176 @@ a.post('/admin/account/edit/banner', async function (req, res) {
     };
 });
 
+a.get('/admin/remove_url/:uuid', async function (req, res) {
+    let { session } = req.cookies;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+    
+    let urls = await short_url.findOne({ uuid: req.params.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+    if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
+
+    if (urls.thumbnail_pro_id !== "") {
+        b2.getFileInfo({
+            fileId: urls.thumbnail_pro_id
+        }).then(async tt => {
+            let data = tt.data
+            b2.deleteFileVersion({
+                fileId: data.fileId,
+                fileName: data.fileName
+            });
+        });
+    };
+
+    delete faviconCache[urls.id];
+    await short_url.deleteOne({ uuid: urls.uuid });
+    res.json({ OK: true, status: 200, status: `Removed link` });
+});
+
+a.post('/admin/edit_url/:uuid', async function (req, res) {
+    let { session } = req.cookies;
+    let { title_vr, subtitle_vr, order_vr, url_vr, highlight_vr, limit_vr, llC } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+    
+    let u = await user.findOne({ uuid: req.params.uuid }).lean();
+    if (!u) return res.status(404).json({ OK: false, status: 404, error: `User not found` });
+    let urls = await short_url.findOne({ author: u._id, uuid: req.query.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+    if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
+
+    let title = title_vr;
+    let stitle = subtitle_vr;
+    let highlight = false
+    let isLimit = urls.limitClicks;
+    let isLimitNum = parseInt(urls.limitClick);
+    let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url_vr}&size=128`;
+    if (decrypt(urls.thumbnail).includes('backblazeb2.com')) thumb = decrypt(urls.thumbnail);
+
+    if (!title) title = decrypt(urls.title);
+    if (!url_vr) url_vr = decrypt(urls.link);
+
+    let regex = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/
+    let url = regex.test(url_vr);
+    let limitClicks = true;
+    if (!llC) limitClicks = false;
+    if (!url) return res.status(403).json({ OK: false, status: 403, error: `Invalid URL` });
+
+    if (u.pro && highlight_vr && highlight_vr == "on") highlight = true;
+    if (u.pro && limitClicks) {
+        if (!isNaN(limit_vr)) {
+            limit_vr = parseInt(limit_vr);
+            if (limit_vr > 2500) return res.status(403).json({ OK: false, status: 403, error: `Upgrade plan to increase the click limit: ${limit_vr}/2500` });
+            if (limit_vr < 1) return res.status(403).json({ OK: false, status: 403, error: `Click limit must be greater than 1: ${limit_vr}/2500` });
+            isLimitNum = limit_vr;
+        };
+    };
+    if (url_vr.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
+    if (url_vr.includes('twitter.com')) thumb = "https://ferret.page/public/i/assets/twitter_normal.png";
+
+    delete faviconCache[urls.id];
+    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { title: encrypt(title), subtitle: encrypt(stitle), thumbnail: encrypt(thumb), order: parseInt(order_vr), link: encrypt(url_vr), highlight, limitClick: isLimitNum, limitClicks } });
+    res.json({ OK: true, status: 200, text: `Updated link` });
+});
+
+a.post('/admin/edit_url/:uuid/icon', async function (req, res) {
+    let { session } = req.cookies;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+        var up = upload.single('favicon');
+
+        let u = await user.findOne({ uuid: req.params.uuid }).lean();
+        if (!u) return res.status(403).json({ OK: false, status: 403, error: `User not found` });
+        if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `User is blocked` });
+        let urls = await short_url.findOne({ author: u._id, uuid: req.query.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+        if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
+
+        up(req, res, async function (e) {
+            if (e) console.log(e);
+            if (e) return res.status(500).json({ OK: false, error: `${e}` });
+            if (!e) {
+                let file = null;
+                let fileExtension = null;
+                let upl = null;
+                let authT = null;
+                if (req.file) file = req.file;
+                if (req.file) fileExtension = req.file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/);
+                if (fileExtension) fileExtension = fileExtension[0];
+
+                if (!file) {
+                    urls.link = decrypt(urls.link);
+                    urls.thumbnail = decrypt(urls.thumbnail);
+                    let current = urls.thumbnail;
+                    let thumb = `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${urls.link}&size=128`;
+                    if (urls.link.includes('ferret.page')) thumb = "https://ferret.page/public/default.png";
+                    if (urls.link.includes('twitter.com')) thumb = "https://ferret.page/public/i/assets/twitter_normal.png";
+
+                    if (current.includes('backblaze') && urls.thumbnail_pro_id !== "") {
+                        b2.getFileInfo({
+                            fileId: urls.thumbnail_pro_id
+                        }).then(async tt => {
+                            let data = tt.data;
+
+                            b2.deleteFileVersion({
+                                fileId: data.fileId,
+                                fileName: data.fileName
+                            });
+                        });
+                    };
+                    delete faviconCache[urls.id];
+                    await short_url.updateOne({ uuid: urls.uuid }, { $set: { thumbnail: encrypt(thumb), thumbnail_pro_id: "" } });
+                    return res.json({ OK: true, status: 200, text: `Updated icon` });
+                }
+
+                if (file && file.mimetype !== "image/gif") {
+                    await sharp(file.buffer).resize({ width: 128, height: 128 }).toBuffer().then(data => {
+                        if (data) file.buffer = data; file.size = data.length;
+                    });
+                };
+
+                if (urls.thumbnail_pro_id !== "") {
+                    b2.getFileInfo({
+                        fileId: urls.thumbnail_pro_id
+                    }).then(async tt => {
+                        let data = tt.data
+                        b2.deleteFileVersion({
+                            fileId: data.fileId,
+                            fileName: data.fileName
+                        });
+                    });
+                };
+
+                b2.getUploadUrl({
+                    bucketId: 'd5afb20446dd61128b590419'
+                }).then(tt => {
+                    upl = tt.data.uploadUrl; 
+                    authT = tt.data.authorizationToken;
+
+                    b2.uploadFile({
+                        uploadUrl: upl,
+                        uploadAuthToken: authT,
+                        fileName: randomUUID(),
+                        contentLength: file.size,
+                        mime: file.mimetype,
+                        data: file.buffer,
+                        hash: '',
+                        onUploadProgress: (event) => {}
+                    }).then(async fin => { await short_url.updateOne({ uuid: urls.uuid }, { $set: { thumbnail: encrypt(`https://f004.backblazeb2.com/file/ferrets/${fin.data.fileName}`), thumbnail_pro_id: fin.data.fileId } }); delete faviconCache[urls.id]; });
+                });
+
+                delete faviconCache[urls.id];
+                res.json({ OK: true, status: 200, text: `Updated icon` });
+            };
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
+});
+
 a.get('/admin/upgrade_plan/:name', async function (req, res) {
     let { session } = req.cookies;
     let { plan } = req.query;
@@ -1819,6 +1990,33 @@ a.get('/admin/block_user/:name', async function (req, res) {
         await user.updateOne({ uuid: u.uuid }, { $set: { blocked, hidden } });
 
         res.redirect(`/${u.uuid}/edit`);
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.get('/admin/allow_subdomain/:name', async function (req, res) {
+    let { session } = req.cookies;
+    let { name } = req.params;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!name) return res.sendStatus(404);
+
+        let u = await user.findOne({ nameToFind: name.toUpperCase() }).lean();
+        if (!u) return res.status(404).json({ OK: false, status: 404, error: `User not found` });
+        if (u.blocked) return res.status(404).json({ OK: false, status: 403, error: `User is blocked` });
+
+        let allow = false;
+        if (!u.subdomain) allow = true;
+
+        await user.updateOne({ uuid: u.uuid }, { $set: { subdomain: allow } });
+
+        res.redirect(`/${u.uuid}/edit`);
+        // res.json({ OK: true, status: 200 });
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, error: `${e}` });

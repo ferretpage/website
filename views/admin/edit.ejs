@@ -22,6 +22,9 @@
               <p class="w-fit m-auto">Is Pro User: <a href="/api/admin/upgrade_plan/<%=view.name%>?plan=<% if (view.pro) {%>free<%} else {%>pro<%}%>" class="w-fit m-auto hover:underline hover:text-current"><%=view.pro%></a></p>
               <p class="w-fit m-auto">Is 2FA Enabled: <% if (view.TFA) {%>true<%} else {%>false<%}%></p>
             </div>
+            <div class="flex flex-auto gap-2 w-fit m-auto">
+              <p class="w-fit m-auto">Subdomain allowed: <a href="/api/admin/allow_subdomain/<%=view.name%>" class="w-fit m-auto hover:underline hover:text-current"><%=view.subdomain%></a></p>
+            </div>
             <div class="w-fit p-4 m-auto flex flex-wrap gap-2 dark:text-white">
               <% if (view.connectedUser && view.connectedUser.length > 0) { view.connectedUser.forEach((elm) => {%>
                 <div class="w-fit m-auto dark:text-white">
@@ -94,7 +97,7 @@
           <div class="p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => {%>
               <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white dark:border-white rounded-lg w-[85%] lg:w-[320px] text-center m-auto p-4">
                   <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-pulse<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
-                      <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+                      <img src="/favicon/<%=elm.id%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
                   </div>
                   <div class="m-auto break-full">
                       <%=elm.title%><% if (elm.subtitle !== "") {%>
@@ -332,7 +335,73 @@
               $('#errorBn').text(e);
               $('#errorBn').addClass('alert alert-danger my-1');
             });
-        });<%}%>
+        });<%}%><% if (links) {%>
+        function dismiss(uuid) {
+            fetch(`/api/admin/remove_url/${uuid}`, { method: 'get' }).then((r)=>r.json()).then((w)=>{
+                $('#error').text('');
+                $('#error').toggleClass(false);
+                console.log(w.error);
+                if (!w.error) {
+                  if (w.OK) return window.location.reload();
+                } else {
+                  $('#error').text(w.error);
+                  $('#error').addClass('alert alert-danger m-auto my-2 w-fit');
+                }
+            }).catch(e => {
+              console.log(e);
+              window.location.assign('/dashboard');
+            });
+        };<% links.forEach((elm) => {%>
+        $('#<%=elm.uuid%>-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+            let av = document.getElementById('Lispinner-<%=elm.uuid%>');
+
+            av.setAttribute('class', 'spinner-border');
+            fetch('/api/admin/edit_url/<%=view.uuid%>?uuid=<%=elm.uuid%>', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+              $('#errorLi-<%=elm.uuid%>').text('');
+              $('#error').toggleClass(false);
+              av.setAttribute('class', 'hidden');
+              if (w.OK) {
+                $('#errorLi-<%=elm.uuid%>').text(w.text);
+                $('#errorLi-<%=elm.uuid%>').addClass('alert alert-success my-1');
+              } else {
+                $('#errorLi-<%=elm.uuid%>').text(w.error);
+                $('#errorLi-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+              }
+            }).catch(e => {
+              console.log(e);
+              $('#errorLi-<%=elm.uuid%>').text(e);
+              $('#errorLi-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+            });
+        });<% if (acc.pro) {%>
+        $('#<%=elm.uuid%>-fav-form').submit(function (e) {
+          e.preventDefault();
+          const formData = new FormData();
+          let d = document.getElementById('FaviconFile-<%=elm.uuid%>');
+          let av = document.getElementById('Favspinner-<%=elm.uuid%>');
+          let dd = new FileReader();
+          formData.append("favicon", d.files[0]);
+
+          av.setAttribute('class', 'm-auto spinner-border');
+          fetch('/api/admin/edit_url/<%=view.uuid%>/icon?uuid=<%=elm.uuid%>', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+            $('#errorFav-<%=elm.uuid%>').text('');
+            $('#errorFav-<%=elm.uuid%>').toggleClass(false);
+            av.setAttribute('class', 'hidden');
+            if (w.OK) {
+              document.getElementById('faviconImage').src = `/favicon/<%=elm.id%>?time=${Date.now()}`;
+              $('#errorFav-<%=elm.uuid%>').text(w.text);
+              $('#errorFav-<%=elm.uuid%>').addClass('alert alert-success my-1');
+            } else {
+              $('#errorFav-<%=elm.uuid%>').text(w.error);
+              $('#errorFav-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+            }
+          }).catch(e => {
+            console.log(e);
+            $('#errorFav-<%=elm.uuid%>').text(e);
+            $('#errorFav-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+          });
+        });<%}})}%>
     </script>
 </body>
 </html>

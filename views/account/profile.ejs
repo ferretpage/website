@@ -41,7 +41,7 @@
     <div class="w-[90%] lg:w-fit p-8 m-auto flex flex-wrap gap-2"><% if (links) { links.sort((a, b) => { return a.order - b.order }); links.forEach(elm => { if (!elm.limitClicks) {%>
         <% if (!elm.link.includes('youtube.com/watch?v=')) {%><div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded-lg m-auto w-[85%] lg:w-[320px] p-4">
             <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-[pulse_2.5s_ease-out_infinite]<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
-                <img src="<%=elm.thumbnail%>" class="w-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+                <img src="/favicon/<%=elm.id%>" class="w-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
             </div>
             <div class="m-auto text-center">
                 <%=elm.title%><% if (elm.subtitle !== "") {%>
@@ -53,7 +53,7 @@
         </div><%}}%><% if (elm.limitClicks && parseInt(elm.limitClick) > elm.clicks.length) {%>
         <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded-lg m-auto w-[85%] lg:w-[320px] p-4">
             <a class="hover:text-current font-bold<% if (elm.highlight) {%> animate-[pulse_2.5s_ease-out_infinite]<%}%>" href="/l/<%=elm.id%>" title="<%=elm.link%>" target="_blank"><div class="w-fit m-auto">
-                <img src="<%=elm.thumbnail%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
+                <img src="/favicon/<%=elm.id%>" class="w-[75px] h-[75px] rounded hover:scale-110" style="vertical-align:middle; transition: 200ms;" draggable="false">
             </div>
             <div class="m-auto text-center">
                 <%=elm.title%><% if (elm.subtitle !== "") {%>

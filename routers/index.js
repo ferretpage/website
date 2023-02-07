@@ -33,6 +33,13 @@ async function removeTOKENS() {
     await tokens.deleteMany({  });
 };
 
+function domain(d) {
+    let ret = false;
+    if (d.includes('.had.contact') || d.includes('.ferret.page')) ret = true;
+
+    return ret;
+};
+
 removeTOKENS();
 
 a.get('/', async function (req, res) {
@@ -44,12 +51,50 @@ a.get('/', async function (req, res) {
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
 
+    if (domain(req.hostname)) {
+        let host = req.hostname.split('.localhost')[0];
+        let links = null;
+
+        let v = await user.findOne({ nameToFind: host.toUpperCase(), hidden: false }).lean();
+
+        if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
+        if (v.hidden || v.blocked || !v.subdomain) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
+        let badges = await badge.findOne({ "users.user": v._id, "users.disabled": false }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+
+        v.apiKey = decrypt(v.apiKey);
+        v.bio = decrypt(v.bio);
+        v.url = decrypt(v.url);
+        v.location = decrypt(v.location);
+        v.fonts = decrypt(v.fonts);
+        if (v.pro && v.theme == "dark") theme = "dark";
+
+        if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };
+        if (acc && !acc.blocked) {
+            await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: acc._id, uuid: randomUUID(), date: Date.now() }] } });
+        };
+        if (!acc) {
+            await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: null, uuid: randomUUID(), date: Date.now() }] } });
+        };
+
+        if (!links) {
+            links = await short_url.find({ author: v._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+
+            if (links && links.length > 0) {
+                links.forEach((elm) => { elm.link = decrypt(elm.link); elm.title = decrypt(elm.title); elm.subtitle = decrypt(elm.subtitle); elm.thumbnail = decrypt(elm.thumbnail) });
+            }
+        }
+
+        return res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
+    }
+
     res.render('home/index', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
 a.get('/register', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -65,6 +110,8 @@ a.get('/signin', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
 
+    if (domain(req.hostname)) return res.redirect('/');
+    
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
@@ -99,6 +146,8 @@ a.get('/tos', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
 
+    if (domain(req.hostname)) return res.redirect('/');
+
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
@@ -116,6 +165,8 @@ a.get('/dashboard', async function (req, res) {
     let acc = null;
     let links = null;
     let code = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&links=1`)).json();
@@ -142,6 +193,8 @@ a.get('/settings', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
 
+    if (domain(req.hostname)) return res.redirect('/');
+
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
         if (auth && auth.status == 403) return res.redirect('/');
@@ -158,6 +211,8 @@ a.get('/settings', async function (req, res) {
 a.get('/settings/switch_account', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -177,6 +232,8 @@ a.get('/analytics', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
 
+    if (domain(req.hostname)) return res.redirect('/');
+
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&views=1`)).json();
         if (auth && auth.status == 403) return res.redirect('/');
@@ -193,6 +250,8 @@ a.get('/analytics', async function (req, res) {
 a.get('/admin/panel', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -224,6 +283,8 @@ a.get('/help', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
 
+    if (domain(req.hostname)) return res.redirect('/');
+
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
@@ -240,6 +301,8 @@ a.get('/help', async function (req, res) {
 a.get('/help/:id', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -462,6 +525,8 @@ a.get('/:user', async function (req, res) {
     let links = null;
     let theme = "";
 
+    if (domain(req.hostname)) return res.redirect('/');
+
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
         if (auth && auth.status == 403) return res.redirect('/');
@@ -505,6 +570,8 @@ a.get('/:uuid/edit', async function (req, res) {
     let acc = null;
     let links = null;
     let theme = "";
+
+    if (domain(req.hostname)) return res.redirect('/');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
