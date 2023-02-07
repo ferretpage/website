@@ -52,7 +52,7 @@ a.get('/', async function (req, res) {
     };
 
     if (domain(req.hostname)) {
-        let host = req.hostname.split('.localhost')[0];
+        let host = req.hostname.split('.had.contact')[0];
         let links = null;
 
         let v = await user.findOne({ nameToFind: host.toUpperCase(), hidden: false }).lean();
