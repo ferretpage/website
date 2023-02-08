@@ -29,6 +29,7 @@ const bannerCache = require('./api/bannerCache');
 const faviconCache = require('./api/faviconCache');
 const authCode = require('./api/authCode');
 const Jimp = require('jimp');
+const receipt = require('../db/account/receipt');
 
 async function removeTOKENS() {
     await tokens.deleteMany({  });
@@ -36,7 +37,7 @@ async function removeTOKENS() {
 
 function domain(d) {
     let ret = false;
-    if (d.includes('.had.contact') || d.includes('.ferret.page')) ret = true;
+    if (d.includes('.had.contact') || d.includes('.ferret.page') || d.includes('.localhost')) ret = true;
 
     return ret;
 };
@@ -53,7 +54,7 @@ a.get('/', async function (req, res) {
     };
 
     if (domain(req.hostname)) {
-        let host = req.hostname.split('.had.contact')[0];
+        let host = req.hostname.split('.')[0];
         let links = null;
 
         let v = await user.findOne({ nameToFind: host.toUpperCase(), hidden: false }).lean();
@@ -181,8 +182,10 @@ a.get('/dashboard', async function (req, res) {
 
     if (links) links = JSON.parse(links);
     if (req.query.code) code = req.query.code.toUpperCase();
+    let qrl = `${req.protocol}://${req.hostname}/${acc.name}`;
+    if (acc.subdomain) qrl = `${req.protocol}://${acc.name.toLowerCase()}.${req.hostname}`;
 
-    qrcode.toDataURL(`${req.protocol}://${req.hostname}/${acc.name}`, function (err, url) {
+    qrcode.toDataURL(qrl, function (err, url) {
         let qr = null;
         if (url) qr = url;
 
@@ -248,6 +251,34 @@ a.get('/analytics', async function (req, res) {
     res.render('account/analytics', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
 });
 
+a.get('/my/purchases', async function (req, res) {
+    let { session, theme } = req.cookies;
+    let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
+
+    if (session) {
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&views=1`)).json();
+        if (auth && auth.status == 403) return res.redirect('/');
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
+    };
+
+    if (!acc) return res.redirect('/');
+    if (acc.status == 403) return res.redirect('/');
+    if (acc.blocked) return res.redirect('/help/suspended-accounts');
+
+    let u = await user.findOne({ session }, { views: 0, connectedUsers: 0 }).lean();
+    let rec = await receipt.find({ user: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let gifts = await receipt.find({ gift_from: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let p = null;
+    let t = null;
+
+    if (rec && rec.length > 0) p = rec;
+    if (gifts && gifts.length > 0) t = gifts;
+
+    res.render('account/purchases', { theme, acc, domain: `${req.protocol}://${req.hostname}`, p, t });
+});
+
 a.get('/admin/panel', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
@@ -284,7 +315,7 @@ a.get('/help', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
 
-    if (domain(req.hostname)) return res.redirect('/');
+    if (domain(req.hostname)) return res.redirect('https://had.contact/help');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -303,7 +334,7 @@ a.get('/help/:id', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
 
-    if (domain(req.hostname)) return res.redirect('/');
+    if (domain(req.hostname)) return res.redirect(`https://had.contact/help/${req.params.id.toLowerCase()}`);
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();

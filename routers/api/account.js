@@ -26,6 +26,7 @@ const avatarCache = require('../api/avatarCache');
 const bannerCache = require('../api/bannerCache');
 const faviconCache = require('../api/faviconCache');
 const authCode = require('../api/authCode');
+const receipt = require('../../db/account/receipt');
 
 const b2 = new B2({
     applicationKeyId: process.env.C_API_KEYID,
@@ -109,6 +110,7 @@ a.get('/v1/auth', async function (req, res) {
     // if (s.blocked) return res.status(403).json({ OK: false, status: 403, error: `User is blocked` });
 
     let links = await short_url.find({ author: s._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let rec = await receipt.find({ user: s._id, valid: true }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }, { path:"gift_from.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 
     s.apiKey = decrypt(s.apiKey);
     s.bio = decrypt(s.bio);
@@ -125,6 +127,25 @@ a.get('/v1/auth', async function (req, res) {
         links.forEach((elm) => { elm.link = decrypt(elm.link); elm.title = decrypt(elm.title); elm.subtitle = decrypt(elm.subtitle); elm.thumbnail = decrypt(elm.thumbnail) });
 
         links = JSON.stringify(links);
+    };
+
+    if (rec && rec.length > 0) {
+        let finalRec = [];
+        rec.forEach(async elm => {
+            if (new Date() > elm.valid_until) {
+                await receipt.updateOne({ user: s._id, uuid: elm.uuid }, { $set: { valid: false } });
+                if (elm.pro) { await user.updateOne({ uuid: s.uuid }, { $set: { pro: false, linklimit: "25", theme: "" } }) };
+                if (elm.subdomain) { await user.updateOne({ uuid: s.uuid }, { $set: { subdomain: false } }) };
+            };
+            if (!s.pro || !s.subdomain) {
+                if (new Date() < elm.valid_until) {
+                    if (elm.pro) { await user.updateOne({ uuid: s.uuid }, { $set: { pro: true, linklimit: "50", theme: "dark" } }) };
+                    if (elm.subdomain) { await user.updateOne({ uuid: s.uuid }, { $set: { subdomain: true } }) };
+                };
+            };
+            finalRec.push({ receipt: elm.receipt, amount: elm.amount, valid_until: elm.valid_until });
+        });
+        s.receipts = finalRec;
     };
 
     let result = { OK: true, status: 200, account: encrypt(JSON.stringify(s)), links: encrypt(links) };
@@ -158,8 +179,8 @@ a.get('/v1/account', async function (req, res) {
 
     if (!name && !uuid) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
     let s;
-    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0 }).lean();
-    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, pro: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0 }).lean();
+    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0, credit: 0 }).lean();
+    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0, credit: 0 }).lean();
 
     if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
 
@@ -171,6 +192,9 @@ a.get('/v1/account', async function (req, res) {
     if (Date.now() - 2.234e+10 > s.last_login) s.inactive = true;
 
     delete s.last_login;
+    delete s.pro;
+    delete s.subdomain;
+    delete s._id;
 
     let result = { OK: true, status: 200, account: s };
     res.setHeader('Content-Type', 'application/json');
@@ -284,6 +308,7 @@ a.post('/v1/register', async function (req, res) {
             recEmail: "",
             session,
             apiKey: encrypt(api_key),
+            credit: "0.00",
             bio: "",
             url: "",
             location: "",
@@ -1317,6 +1342,32 @@ a.get('/v1/account/settings/remove_account', async function (req, res) {
     res.json({ OK: true, status: 200, text: `Removed User` });
 });
 
+a.post('/v1/account/purchases/gift/:id', async function (req, res) {
+    let { session } = req.cookies;
+    let { name_vr } = req.body;
+
+    if (!name_vr) return res.status(404).json({ OK: false, status: 404, error: `Please specify a user` });
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1, flag: 1} }]).lean();
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Invalid Authentication` });
+
+    let rec = await receipt.findOne({ gift_from: u._id, receipt: req.params.id.toUpperCase(), user: null }).lean();
+    if (!rec) return res.status(403).json({ OK: false, status: 403, error: `Invalid Gift` });
+
+    let sendto = await user.findOne({ nameToFind: name_vr.toUpperCase() }, { _id: 1, uuid: 1, name: 1, displayName: 1, pfp: 1, blocked: 1, hidden: 1, pro: 1, subdomain: 1 }).lean();
+    if (!sendto) return res.status(404).json({ OK: false, status: 404, error: `Could not find user: ${name_vr}` });
+    if (sendto.blocked) return res.status(403).json({ OK: false, status: 403, error: `Could not find user: ${name_vr}` });
+    if (sendto.pro && rec.pro) return res.status(403).json({ OK: false, status: 403, error: `${sendto.displayName} already has this plan enabled` });
+    if (sendto.subdomain && rec.subdomain) return res.status(403).json({ OK: false, status: 403, error: `${sendto.displayName} already has this plan enabled` });
+
+    await receipt.updateOne({ uuid: rec.uuid }, { $set: { user: sendto._id } });
+
+    res.json({ OK: true, status: 200, text: `Sent gift to: ${sendto.displayName} (@${sendto.name})` });
+});
+
 a.get('/account/create_auth', async function (req, res) {
     let { session } = req.cookies;
 
@@ -1767,6 +1818,61 @@ a.post('/admin/account/edit/banner', async function (req, res) {
     };
 });
 
+a.post('/admin/receipt/:uuid', async function (req, res) {
+    let { session } = req.cookies;
+    let { uuid } = req.params;
+    let { type_vr, years_vr } = req.body;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!type_vr) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+
+        let s = await user.findOne({ session }, { nameHistory: 0, email: 0, password: 0, pfp: 0, pfp_id: 0, banner: 0, banner_id: 0, recEmail: 0, apiKey: 0, bio: 0, url: 0, location: 0, reason: 0, linkLimit: 0, links: 0, views: 0, verified: 0, vrverified: 0, ogname: 0, pro: 0, pronouns: 0, hidden: 0, createdIP: 0, createdAt: 0, last_login: 0, connectedUser: 0, __v: 0, google_backup: 0, theme: 0, personal_border: 0, fonts: 0, socials: 0, signin_id: 0, subdomain: 0 }).lean();
+        let u = await user.findOne({ uuid }, { nameHistory: 0, email: 0, password: 0, pfp: 0, pfp_id: 0, banner: 0, banner_id: 0, recEmail: 0, apiKey: 0, bio: 0, url: 0, location: 0, reason: 0, linkLimit: 0, links: 0, views: 0, verified: 0, vrverified: 0, ogname: 0, pronouns: 0, hidden: 0, createdIP: 0, createdAt: 0, last_login: 0, connectedUser: 0, __v: 0, google_backup: 0, theme: 0, personal_border: 0, fonts: 0, socials: 0, signin_id: 0 }).lean();
+
+        if (!u) return res.status(404).json({ OK: false, status: 404, error: `Invalid UUID` });
+        if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `This user is blocked` });
+
+        let yr = new Date().setFullYear(new Date().getFullYear()+1);
+        if (years_vr && !isNaN(years_vr) && years_vr > 0 && years_vr < 251) yr = new Date().setFullYear(new Date().getFullYear()+parseInt(years_vr));
+
+        let ispro = false;
+        let isproplus = false;
+        let issubdomain = false;
+        let iscustomdomain = false;
+        let isbadge = false;
+        let token = Math.random().toString(32).substring(5).toUpperCase();
+        if (type_vr.toLowerCase() == 'pro') ispro = true;
+        if (type_vr.toLowerCase() == 'subdomain') issubdomain = true;
+
+        new receipt({
+            user: null,
+            receipt: token,
+            pro: ispro,
+            pro_plus: isproplus,
+            subdomain: issubdomain,
+            customdomain: iscustomdomain,
+            badge: isbadge,
+            gift: true,
+            admin_gift: false,
+            gift_from: u._id,
+            amount: "0",
+            valid_until: yr,
+            valid: true,
+            uuid: randomUUID(),
+            date: Date.now()
+        }).save();
+
+        res.json({ OK: true, status: 200, text: `Created receipt: ${token}` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
+});
+
 a.get('/admin/remove_url/:uuid', async function (req, res) {
     let { session } = req.cookies;
 
@@ -1939,7 +2045,7 @@ a.post('/admin/edit_url/:uuid/icon', async function (req, res) {
 
 a.get('/admin/upgrade_plan/:name', async function (req, res) {
     let { session } = req.cookies;
-    let { plan } = req.query;
+    let { plan, admin_gift, years } = req.query;
     let { name } = req.params;
 
     try {
@@ -1953,9 +2059,34 @@ a.get('/admin/upgrade_plan/:name', async function (req, res) {
         if (u.blocked) return res.status(404).json({ OK: false, status: 403, error: `User is blocked` });
 
         if (!u.pro && plan.toLowerCase() == "pro") {
+            let ag = false;
+            let yr = new Date().setFullYear(new Date().getFullYear()+1);
+
+            if (admin_gift && admin_gift == 'true') ag = true;
+            if (years) yr = new Date().setFullYear(new Date().getFullYear()+parseInt(years))
+            new receipt({
+                user: u._id,
+                receipt: Math.random().toString(32).substring(5).toUpperCase(),
+                pro: true,
+                pro_plus: false,
+                subdomain: false,
+                customdomain: false,
+                badge: false,
+                gift: false,
+                admin_gift: ag,
+                gift_from: null,
+                amount: "0",
+                valid_until: yr,
+                valid: true,
+                uuid: randomUUID(),
+                date: Date.now()
+            }).save();
             await user.updateOne({ uuid: u.uuid }, { $set: { pro: true, linklimit: "50", theme: "dark" } });
         };
         if (u.pro && plan.toLowerCase() == "free") {
+            let rr = await receipt.findOne({ user: u._id, pro: true, valid: true }).lean();
+            if (rr) await receipt.updateOne({ user: u._id, pro: true, valid: true }, { $set: { valid: false } });
+
             await user.updateOne({ uuid: u.uuid }, { $set: { pro: false, linklimit: "25", theme: "" } });
         };
 
@@ -1999,6 +2130,7 @@ a.get('/admin/block_user/:name', async function (req, res) {
 a.get('/admin/allow_subdomain/:name', async function (req, res) {
     let { session } = req.cookies;
     let { name } = req.params;
+    let { admin_gift, years } = req.query;
 
     try {
         let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
@@ -2013,6 +2145,34 @@ a.get('/admin/allow_subdomain/:name', async function (req, res) {
         let allow = false;
         if (!u.subdomain) allow = true;
 
+        if (!u.subdomain) {
+            let ag = false;
+            let yr = new Date().setFullYear(new Date().getFullYear()+1);
+    
+            if (admin_gift && admin_gift == 'true') ag = true;
+            if (years) yr = new Date().setFullYear(new Date().getFullYear()+parseInt(years));
+            new receipt({
+                user: u._id,
+                receipt: Math.random().toString(32).substring(5).toUpperCase(),
+                pro: false,
+                pro_plus: false,
+                subdomain: true,
+                customdomain: false,
+                badge: false,
+                gift: false,
+                admin_gift: ag,
+                gift_from: null,
+                amount: "0",
+                valid_until: yr,
+                valid: true,
+                uuid: randomUUID(),
+                date: Date.now()
+            }).save();
+        };
+        if (u.subdomain) {
+            let rr = await receipt.findOne({ user: u._id, subdomain: true, valid: true }).lean();
+            if (rr) await receipt.updateOne({ user: u._id, subdomain: true, valid: true }, { $set: { valid: false } });
+        };
         await user.updateOne({ uuid: u.uuid }, { $set: { subdomain: allow } });
 
         res.redirect(`/${u.uuid}/edit`);
@@ -2020,6 +2180,41 @@ a.get('/admin/allow_subdomain/:name', async function (req, res) {
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, error: `${e}` });
+    };
+});
+
+a.get('/admin/cached_images/:name', async function (req, res) {
+    let { name } = req.params;
+    let { session } = req.cookies;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+    
+        if (!name) return res.status(404).json({ OK: false, status: 404, error: `Please specify a user` });
+        let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, nameHistory: 0, bio: 0, location: 0, reason: 0, pro: 0, last_login: 0, theme: 0, personal_border: 0, fonts: 0, signin_id: 0, subdomain: 0, pfp_id: 0, banner_id: 0, url: 0, pronouns: 0 }).lean();
+        let u;
+        if (s && !s.blocked && !s.hidden) u = await short_url.find({ author: s._id }, { _id: 0, clicks: 0, link: 0, title: 0, subtitle: 0, order: 0, highlight: 0, __v: 0, limitClick: 0, limitClicks: 0, thumbnail: 0, thumbnail_pro_id: 0 }).lean();
+    
+        let result = { OK: true, status: 200, loaded: { favicon: [] } };
+        let av;
+        let bn;
+        let fi = [];
+    
+        if (u && u.length > 0) {
+            u.forEach(elm => {
+                if (faviconCache[elm.id]) fi.push(`${req.protocol}://${req.hostname}/favicon/${elm.id}`);
+            });
+        };
+    
+        if (s && !s.blocked && !s.hidden && avatarCache[s.uuid]) av = `${req.protocol}://${req.hostname}/avatar/${s.uuid}`;
+        if (s && !s.blocked && !s.hidden && bannerCache[s.uuid]) bn = `${req.protocol}://${req.hostname}/banner/${s.uuid}`;
+        if (s && !s.blocked && !s.hidden) result = { OK: true, status: 200, loaded: { avatar: av, banner: bn, favicon: fi } };
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify(result, null, 2.5));
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, status: 500, error: `Unable to load this endpoint` });
     };
 });
 

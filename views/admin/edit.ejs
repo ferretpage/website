@@ -19,11 +19,12 @@
             <p class="w-fit m-auto">Created At: <time data-time="<%=view.createdAt%>"></time></p>
             <div class="flex flex-auto gap-2 w-fit m-auto">
               <p class="w-fit m-auto">Is banned: <a href="/api/admin/block_user/<%=view.name%>?type=blocked" class="w-fit m-auto hover:underline hover:text-current"><%=view.blocked%></a></p>
-              <p class="w-fit m-auto">Is Pro User: <a href="/api/admin/upgrade_plan/<%=view.name%>?plan=<% if (view.pro) {%>free<%} else {%>pro<%}%>" class="w-fit m-auto hover:underline hover:text-current"><%=view.pro%></a></p>
+              <p class="w-fit m-auto">Is Pro User: <a href="/api/admin/upgrade_plan/<%=view.name%>?plan=<% if (view.pro) {%>free<%} else {%>pro&admin_gift=true&years=1<%}%>" class="w-fit m-auto hover:underline hover:text-current"><%=view.pro%></a></p>
               <p class="w-fit m-auto">Is 2FA Enabled: <% if (view.TFA) {%>true<%} else {%>false<%}%></p>
             </div>
             <div class="flex flex-auto gap-2 w-fit m-auto">
-              <p class="w-fit m-auto">Subdomain allowed: <a href="/api/admin/allow_subdomain/<%=view.name%>" class="w-fit m-auto hover:underline hover:text-current"><%=view.subdomain%></a></p>
+              <p class="w-fit m-auto">Subdomain allowed: <a href="/api/admin/allow_subdomain/<%=view.name%>?admin_gift=true&years=1" class="w-fit m-auto hover:underline hover:text-current"><%=view.subdomain%></a></p>
+              <p class="w-fit m-auto" data-bs-toggle="modal" data-bs-target="#createRec">Create Receipt</p>
             </div>
             <div class="w-fit p-4 m-auto flex flex-wrap gap-2 dark:text-white">
               <% if (view.connectedUser && view.connectedUser.length > 0) { view.connectedUser.forEach((elm) => {%>
@@ -235,6 +236,43 @@
                 </div>
               </div>
             </form>
+            <form id="rec-form">
+              <div class="modal fade" id="createRec" tabindex="-1" aria-labelledby="createRecModalLabel" aria-hidden="true">
+                  <div class="modal-dialog my-8 md:my-2">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title text-black" id="editModalLabel">Create Receipt <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                      <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                    </div>
+                    <div class="modal-body text-black">
+                      <div id="errorRec" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                      <div class="form-row align-items-center">
+                        <div class="form-row align-items-center">
+                          <div class="col-auto" style="width: 75%; margin: auto;">
+                            <label class="input-group-text" for="typeGroup">Plans</label>
+                            <select class="form-select mb-2" id="typeGroup" name="type_vr">
+                              <option value="pro">Pro Plan</option>
+                              <option value="subdomain">Subdomain</option>
+                            </select>
+                            <div class="form-floating mb-2 break-all">
+                              <input type="text" class="form-control" placeholder="1 Year" id="Years" name="years_vr" value="1" autocomplete="off" required></input>
+                              <label for="Years">Years</label>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="w-fit m-auto">
+                          <div class="hidden" id="Recspinner" role="status"><span class="visually-hidden">Loading...</span></div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
+                          <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Create</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
       </div>
     </div>
     <script defer>
@@ -335,7 +373,30 @@
               $('#errorBn').text(e);
               $('#errorBn').addClass('alert alert-danger my-1');
             });
-        });<%}%><% if (links) {%>
+        });<%}%>
+        $('#rec-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+            let av = document.getElementById('Recspinner');
+
+            av.setAttribute('class', 'm-auto spinner-border');
+            fetch('/api/admin/receipt/<%=view.uuid%>', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+              $('#errorRec').text('');
+              $('#errorRec').toggleClass(false);
+              av.setAttribute('class', 'hidden');
+              if (w.OK) {
+                $('#errorRec').text(w.text);
+                $('#errorRec').addClass('alert alert-success my-1');
+              } else {
+                $('#errorRec').text(w.error);
+                $('#errorRec').addClass('alert alert-danger my-1');
+              }
+            }).catch(e => {
+              console.log(e);
+              $('#errorRec').text(e);
+              $('#errorRec').addClass('alert alert-danger my-1');
+            });
+        });<% if (links) {%>
         function dismiss(uuid) {
             fetch(`/api/admin/remove_url/${uuid}`, { method: 'get' }).then((r)=>r.json()).then((w)=>{
                 $('#error').text('');
