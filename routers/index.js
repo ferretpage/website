@@ -87,9 +87,16 @@ a.get('/', async function (req, res) {
         }
 
         return res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
-    }
+    };
 
-    res.render('home/index', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
+    let shortURL = await short_url.find({ }, { uuid: 1 }).lean();
+    let userss = await user.find({ }, { uuid: 1, credit: 1 }).lean();
+    let credits = 0;
+    if (!shortURL) shortURL = [];
+    if (!userss) userss = [];
+    if (acc) credits = parseInt(acc.credit);
+
+    res.render('home/index', { theme, acc, domain: `${req.protocol}://${req.hostname}`, length: { urls: shortURL.length, users: userss.length, credits: credits.toLocaleString('en-US') } });
 });
 
 a.get('/register', async function (req, res) {

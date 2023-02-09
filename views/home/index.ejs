@@ -17,5 +17,28 @@
         <div class="my-8"></div>
         <div class="w-fit m-auto"><a class="btn-lg btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" href="/register">Create account</a></div><%}%>
     </div>
+    <div class="my-2"></div>
+    <div class="w-fit m-auto text-center p-2 dark:text-white flex flex-wrap gap-2 text-2xl">
+        <div>Total Users: <span class="font-bold"><%=length.users%></span></div>
+        <div>Total Links: <span class="font-bold"><%=length.urls%></span></div><% if (acc) {%>
+        <div>Your Credits: <span class="font-bold">$<%=length.credits%></span></div><%}%>
+    </div>
+    <div class="my-2"></div>
+    <div class="flex flex-wrap gap-2 w-fit m-auto text-center p-2">
+        <div class="card text-center dark:bg-gray-200">
+            <div class="card-header">Featured Profile</div>
+            <div class="card-body">
+                <img src="/public/i/assets/home-example-2.png" class="card-img-top" title="An example of a fully set up profile" alt="An example of a fully set up profile" draggable="false">
+            </div>
+            <div class="card-footer text-muted"><a href="/ferret" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">/ferret</a></div>
+        </div>
+        <div class="card text-center dark:bg-gray-200">
+            <div class="card-header">Featured Profile</div>
+            <div class="card-body">
+                <img src="/public/i/assets/home-example-3.png" class="card-img-top" title="An example of a fully set up profile" alt="An example of a fully set up profile" draggable="false">
+            </div>
+            <div class="card-footer text-muted"><a href="/fur" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">/fur</a></div>
+        </div>
+    </div><br><br>
 </body>
 </html>

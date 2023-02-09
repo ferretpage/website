@@ -7,14 +7,14 @@
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
-    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your balance: $<%=acc.credit%></h1>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your balance: $<%=parseInt(acc.credit).toLocaleString('en-US')%></h1>
     <div class="w-fit m-auto break-words p-2 text-lg dark:text-white">
         <div class="flex flex-auto gap-2 m-auto w-min md:w-fit"><% if (p) { p.forEach((elm) => {%>
             <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded m-auto p-4 text-center">
                 <h4>Receipt ID: <span class="font-bold"><%=elm.receipt%></span></h4>
                 <h4>Plan: <span class="font-bold"><% if (elm.pro) {%>Pro<%}%><% if (elm.subdomain) {%>Subdomain<%}%><% if (elm.credit) {%>Credits<%}%></span></h4><% if (elm.gift) {%>
                 <h4>Gifed by: <span class="font-bold"><a class="hover:text-current hover:underline hover:cursor-pointer" href="/<%=elm.gift_from.name%>" target="__blank"><%=elm.gift_from.displayName%></a></span></h4><%} else {%><h4>Gifed by: <span class="font-bold"><a class="hover:text-current hover:underline hover:cursor-pointer" href="/my/purchases"><% if (!elm.admin_gift) {%>System<%}; if (elm.admin_gift) {%>Console<%}%></a></span></h4><%}%>
-                <h4>Purchase Amount: <span class="font-bold">$<%=elm.amount%></span></h4>
+                <h4>Purchase Amount: <span class="font-bold">$<%=parseInt(elm.amount).toLocaleString('en-US')%></span></h4>
                 <h4>Purchase Date: <span class="font-bold"><time data-time="<%=new Date(elm.date).valueOf()%>"></time></span></h4><% if (!elm.credit) {%><% let difference = elm.valid_until.getTime() - new Date().getTime(); let daysleft = Math.ceil(difference / (1000 * 3600 * 24)); %>
                 <h4>Days left: <span class="font-bold" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%=elm.valid_until%>"><% if (daysleft > 0 && elm.valid) {%><%=daysleft.toLocaleString('en-US');%><%} else {%>Expired<%}%></span></h4><%}%>
             </div><%})} else {%><h1 class="text-2xl dark:text-white">Seems a bit empty here. . .</h1><%}%>
@@ -23,7 +23,7 @@
             <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded m-auto p-4 text-center">
                 <h4>Receipt ID: <span class="font-bold"><%=elm.receipt%></span></h4>
                 <h4>Plan: <span class="font-bold"><% if (elm.pro) {%>Pro<%}%><% if (elm.subdomain) {%>Subdomain<%}%><% if (elm.credit) {%>Credits<%}%></span></h4>
-                <h4>Purchase Amount: <span class="font-bold">$<%=elm.amount%></span></h4>
+                <h4>Purchase Amount: <span class="font-bold">$<%=parseInt(elm.amount).toLocaleString('en-US')%></span></h4>
                 <h4>Purchase Date: <span class="font-bold"><time data-time="<%=new Date(elm.date).valueOf()%>"></time></span></h4><% if (!elm.credit) {%><% let difference = elm.valid_until.getTime() - new Date().getTime(); let daysleft = Math.ceil(difference / (1000 * 3600 * 24)); %>
                 <h4>Days left: <span class="font-bold" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%=elm.valid_until%>"><% if (daysleft > 0 && elm.valid) {%><%=daysleft.toLocaleString('en-US');%><%} else {%>Expired<%}%></span></h4><%}%><% if (!elm.user && elm.gift_from) {%>
                 <div class="w-fit m-auto mt-1">
