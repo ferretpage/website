@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: u.displayName + "'s Purchases" }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white"><%=u.displayName%>'s (@<%=u.name%>) balance: <span class="w-fit m-auto text-center" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Click to give credits"><span data-bs-toggle="modal" data-bs-target="#creditAmount">$<%=u.credit%></span></span></h1>
+    <div class="w-fit m-auto break-words p-2 text-lg dark:text-white">
+        <div class="flex flex-auto gap-2 m-auto w-min md:w-fit"><% if (p) { p.forEach((elm) => {%>
+            <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded m-auto p-4 text-center">
+                <h4>Receipt ID: <span class="font-bold"><%=elm.receipt%></span></h4>
+                <h4>Plan: <span class="font-bold"><% if (elm.pro) {%>Pro<%}%><% if (elm.subdomain) {%>Subdomain<%}%><% if (elm.credit) {%>Credits<%}%></span></h4><% if (elm.gift) {%>
+                <h4>Gifed by: <span class="font-bold"><a class="hover:text-current hover:underline hover:cursor-pointer" href="/<%=elm.gift_from.name%>" target="__blank"><%=elm.gift_from.displayName%></a></span></h4><%} else {%><h4>Gifed by: <span class="font-bold"><a class="hover:text-current hover:underline hover:cursor-pointer" href="/<%=u.uuid%>/purchases"><% if (!elm.admin_gift) {%>System<%}; if (elm.admin_gift) {%>Console<%}%></a></span></h4><%}%>
+                <h4>Purchase Amount: <span class="font-bold">$<%=elm.amount%></span></h4>
+                <h4>Purchase Date: <span class="font-bold"><time data-time="<%=new Date(elm.date).valueOf()%>"></time></span></h4><% if (!elm.credit) {%><% let difference = elm.valid_until.getTime() - new Date().getTime(); let daysleft = Math.ceil(difference / (1000 * 3600 * 24)); %>
+                <h4>Days left: <span class="font-bold" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%=elm.valid_until%>"><% if (daysleft > 0 && elm.valid) {%><%=daysleft.toLocaleString('en-US');%><%} else {%>Expired<%}%></span></h4><%}%>
+            </div><%})} else {%><h1 class="text-2xl dark:text-white">Seems a bit empty here. . .</h1><%}%>
+        </div>
+        <div class="flex flex-auto gap-2 m-auto w-min md:w-fit mt-4"><% if (t) { t.forEach((elm) => {%>
+            <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded m-auto p-4 text-center">
+                <h4>Receipt ID: <span class="font-bold"><%=elm.receipt%></span></h4>
+                <h4>Plan: <span class="font-bold"><% if (elm.pro) {%>Pro<%}%><% if (elm.subdomain) {%>Subdomain<%}%><% if (elm.credit) {%>Credits<%}%></span></h4>
+                <h4>Purchase Amount: <span class="font-bold">$<%=elm.amount%></span></h4>
+                <h4>Purchase Date: <span class="font-bold"><time data-time="<%=new Date(elm.date).valueOf()%>"></time></span></h4><% if (!elm.credit) {%><% let difference = elm.valid_until.getTime() - new Date().getTime(); let daysleft = Math.ceil(difference / (1000 * 3600 * 24)); %>
+                <h4>Days left: <span class="font-bold" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%=elm.valid_until%>"><% if (daysleft > 0 && elm.valid) {%><%=daysleft.toLocaleString('en-US');%><%} else {%>Expired<%}%></span></h4><%}%><% if (!elm.user && elm.gift_from) {%>
+                <div class="w-fit m-auto mt-1">
+                    <button type="button" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" data-bs-toggle="modal" data-bs-target="#gift-<%=elm.uuid%>" disabled>Gift To Someone</button>
+                </div><%}%>
+            </div><%})} else {%><h1 class="text-2xl dark:text-white">No previous transactions found. . .</h1><%}%>
+        </div>
+
+        <form id="credit-form">
+            <div class="modal fade" id="creditAmount" tabindex="-1" aria-labelledby="creditAmountModalLabel" aria-hidden="true">
+                <div class="modal-dialog my-8 md:my-2">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title text-black" id="editModalLabel">Set User Credits <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                    <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                  </div>
+                  <div class="modal-body text-black">
+                    <div id="errorCred" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                    <div class="form-row align-items-center">
+                      <div class="form-row align-items-center">
+                        <div class="col-auto" style="width: 65%; margin: auto;">
+                            <div class="form-floating mb-2 break-all">
+                                <input type="text" class="form-control" placeholder="$10.00" value="<%=u.credit%>" id="Credits" name="cred_vr" autocomplete="off" required></input>
+                                <label for="Credits">Credits</label>
+                            </div>
+                        </div>
+                      </div>
+                      <div class="w-fit m-auto">
+                        <div class="hidden" id="Credspinner" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Save changes</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </form>
+    </div>
+    <script defer>
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+        $('time').each(function (e) {
+            time = parseInt($(this).attr('data-time'));
+            time = new Date(time).toLocaleString();
+            $(this).html(time);
+        });<% if (t) { t.forEach((elm) => {%>
+        $('#<%=elm.uuid%>-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+            let d = document.getElementById('UN-<%=elm.uuid%>');
+            let av = document.getElementById('Recspinner-<%=elm.uuid%>');
+
+            av.setAttribute('class', 'm-auto spinner-border');
+            fetch('/api/v1/account/purchases/gift/<%=elm.receipt%>', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+              $('#errorRec-<%=elm.uuid%>').text('');
+              $('#errorRec-<%=elm.uuid%>').toggleClass(false);
+              av.setAttribute('class', 'hidden');
+              if (w.OK) {
+                $('#errorRec-<%=elm.uuid%>').text(w.text);
+                $('#errorRec-<%=elm.uuid%>').addClass('alert alert-success my-1');
+              } else {
+                $('#errorRec-<%=elm.uuid%>').text(w.error);
+                $('#errorRec-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+              }
+            }).catch(e => {
+              console.log(e);
+              $('#errorRec-<%=elm.uuid%>').text(e);
+              $('#errorRec-<%=elm.uuid%>').addClass('alert alert-danger my-1');
+            });
+        });<%})};%>
+
+        $('#credit-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+            let av = document.getElementById('Credspinner');
+
+            av.setAttribute('class', 'm-auto spinner-border');
+            fetch('/api/admin/account/credits/<%=u.uuid%>', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+              $('#errorCred').text('');
+              $('#errorCred').toggleClass(false);
+              av.setAttribute('class', 'hidden');
+              if (w.OK) {
+                $('#errorCred').text(w.text);
+                $('#errorCred').addClass('alert alert-success my-1');
+              } else {
+                $('#errorCred').text(w.error);
+                $('#errorCred').addClass('alert alert-danger my-1');
+              }
+            }).catch(e => {
+              console.log(e);
+              $('#errorCred').text(e);
+              $('#errorCred').addClass('alert alert-danger my-1');
+            });
+        });
+    </script>
+</body>
+</html>

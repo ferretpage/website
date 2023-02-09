@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: 'Help - Gift Code' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Gift Code</h1>
+    <div>
+        <div class="w-fit m-auto p-3 break-words dark:text-white">
+            <h2 class="font-bold text-2xl mb-2 text-center">How do I obtain a Gift Code</h2>
+            <h4 class="text-center mt-2">As of right now the only way to obtain a gift code is to be directly given one by the staff team.</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+            <h2 class="font-bold text-2xl mb-2 text-center">I got a Gift Code but I forgot to redeem it before it expired</h2>
+            <h4 class="text-center mt-2">You can contact the support team and can get it renewed if you can prove it was not redeemed.</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+            <h2 class="font-bold text-2xl mb-2 text-center">Information: </h2>
+            <h4 class="text-center">You can contact our support team if you are having issues with redeeming. <a class="alert-link hover:underline" href="mailto:support@ferret.page">support@ferret.page</a></h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+        </div>
+    </div><br>
+</body>
+<script defer>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+</html>

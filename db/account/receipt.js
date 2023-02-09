@@ -9,6 +9,7 @@ const receipt = new mongo.Schema({
     subdomain: Boolean,
     customdomain: Boolean,
     badge: Boolean,
+    credit: Boolean,
     gift: Boolean,
     admin_gift: Boolean,
     amount: String,

@@ -253,6 +253,7 @@ a.get('/analytics', async function (req, res) {
 
 a.get('/my/purchases', async function (req, res) {
     let { session, theme } = req.cookies;
+    let { redeem } = req.query;
     let acc = null;
 
     if (domain(req.hostname)) return res.redirect('/');
@@ -272,15 +273,48 @@ a.get('/my/purchases', async function (req, res) {
     let gifts = await receipt.find({ gift_from: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
     let p = null;
     let t = null;
+    let redeem_code = null;
+
+    if (rec && rec.length > 0) p = rec;
+    if (gifts && gifts.length > 0) t = gifts;
+    if (redeem) redeem_code = redeem;
+
+    res.render('account/purchases', { theme, acc, domain: `${req.protocol}://${req.hostname}`, p, t, redeem_code });
+});
+
+a.get('/:uuid/purchases', async function (req, res) {
+    let { session, theme, verified_session } = req.cookies;
+    let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
+    if (!verified_session) return res.redirect('/admin/panel');
+    if (verified_session && !authCode[verified_session]) return res.redirect('/admin/panel');
+
+    if (session) {
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&views=1`)).json();
+        if (auth && auth.status == 403) return res.redirect('/');
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
+    };
+
+    if (!acc) return res.redirect('/');
+    if (acc.status == 403) return res.redirect('/');
+    if (acc && !acc.staff) return res.redirect('/');
+    if (acc.blocked) return res.redirect('/help/suspended-accounts');
+
+    let u = await user.findOne({ uuid: req.params.uuid }, { views: 0, connectedUsers: 0 }).lean();
+    let rec = await receipt.find({ user: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let gifts = await receipt.find({ gift_from: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let p = null;
+    let t = null;
 
     if (rec && rec.length > 0) p = rec;
     if (gifts && gifts.length > 0) t = gifts;
 
-    res.render('account/purchases', { theme, acc, domain: `${req.protocol}://${req.hostname}`, p, t });
+    res.render('admin/purchases', { theme, acc, domain: `${req.protocol}://${req.hostname}`, u, p, t });
 });
 
 a.get('/admin/panel', async function (req, res) {
-    let { session, theme } = req.cookies;
+    let { session, theme, verified_session } = req.cookies;
     let acc = null;
 
     if (domain(req.hostname)) return res.redirect('/');
@@ -298,6 +332,9 @@ a.get('/admin/panel', async function (req, res) {
 
     let u = await user.find({  }).lean();
     let users = [];
+    let isVerified = false;
+
+    if (verified_session && authCode[verified_session]) isVerified = true;
 
     u.forEach(elm => {
         elm.email = decrypt(elm.email);
@@ -308,7 +345,7 @@ a.get('/admin/panel', async function (req, res) {
 
     users.sort((a, b) => { return b.date - a.date });
 
-    res.render('admin/panel', { theme, acc, users, domain: `${req.protocol}://${req.hostname}` });
+    res.render('admin/panel', { theme, acc, users, domain: `${req.protocol}://${req.hostname}`, isVerified });
 });
 
 a.get('/help', async function (req, res) {
@@ -604,12 +641,15 @@ a.get('/:user', async function (req, res) {
 });
 
 a.get('/:uuid/edit', async function (req, res) {
-    let { session } = req.cookies;
+    let { session, verified_session } = req.cookies;
     let acc = null;
     let links = null;
     let theme = "";
 
     if (domain(req.hostname)) return res.redirect('/');
+
+    if (!verified_session) return res.redirect('/admin/panel');
+    if (verified_session && !authCode[verified_session]) return res.redirect('/admin/panel');
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();

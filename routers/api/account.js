@@ -132,7 +132,11 @@ a.get('/v1/auth', async function (req, res) {
     if (rec && rec.length > 0) {
         let finalRec = [];
         rec.forEach(async elm => {
-            if (new Date() > elm.valid_until) {
+            if (elm.credit && elm.valid) {
+                await receipt.updateOne({ user: s._id, uuid: elm.uuid }, { $set: { valid: false } });
+                await user.updateOne({ uuid: s.uuid }, { $set: { credit: elm.amount } });
+            };
+            if (new Date() > elm.valid_until && !elm.credit) {
                 await receipt.updateOne({ user: s._id, uuid: elm.uuid }, { $set: { valid: false } });
                 if (elm.pro) { await user.updateOne({ uuid: s.uuid }, { $set: { pro: false, linklimit: "25", theme: "" } }) };
                 if (elm.subdomain) { await user.updateOne({ uuid: s.uuid }, { $set: { subdomain: false } }) };
@@ -1368,6 +1372,41 @@ a.post('/v1/account/purchases/gift/:id', async function (req, res) {
     res.json({ OK: true, status: 200, text: `Sent gift to: ${sendto.displayName} (@${sendto.name})` });
 });
 
+a.get('/v1/redeem', async function (req, res) {
+    let { session } = req.cookies;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1, flag: 1} }]).lean();
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Invalid Authentication` });
+
+    res.json({ OK: false, status: 404, error: `Please specify a gift code` });
+});
+
+a.get('/v1/redeem/:id', async function (req, res) {
+    let { session } = req.cookies;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let u = await user.findOne({ session }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1, flag: 1} }]).lean();
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Invalid Authentication` });
+
+    let rec = await receipt.findOne({ uuid: req.params.id, user: null, valid: true }).lean();
+    if (!rec) return res.status(403).json({ OK: false, status: 403, error: `Invalid Gift Code` });
+
+    let sendto = await user.findOne({ uuid: u.uuid }, { _id: 1, uuid: 1, name: 1, displayName: 1, pfp: 1, blocked: 1, hidden: 1, pro: 1, subdomain: 1 }).lean();
+    if (!sendto) return res.status(404).json({ OK: false, status: 404, error: `Could not find user: ${u.name}` });
+    if (sendto.blocked) return res.status(403).json({ OK: false, status: 403, error: `Could not find user: ${name_vr}` });
+    if (sendto.pro && rec.pro) return res.status(403).json({ OK: false, status: 403, error: `${sendto.displayName} already has this plan enabled` });
+    if (sendto.subdomain && rec.subdomain) return res.status(403).json({ OK: false, status: 403, error: `${sendto.displayName} already has this plan enabled` });
+
+    await receipt.updateOne({ uuid: rec.uuid }, { $set: { user: sendto._id } });
+
+    res.json({ OK: true, status: 200, text: `Added $${rec.amount} to your balance` });
+});
+
 a.get('/account/create_auth', async function (req, res) {
     let { session } = req.cookies;
 
@@ -1836,17 +1875,22 @@ a.post('/admin/receipt/:uuid', async function (req, res) {
         if (!u) return res.status(404).json({ OK: false, status: 404, error: `Invalid UUID` });
         if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `This user is blocked` });
 
-        let yr = new Date().setFullYear(new Date().getFullYear()+1);
-        if (years_vr && !isNaN(years_vr) && years_vr > 0 && years_vr < 251) yr = new Date().setFullYear(new Date().getFullYear()+parseInt(years_vr));
-
         let ispro = false;
         let isproplus = false;
         let issubdomain = false;
         let iscustomdomain = false;
         let isbadge = false;
+        let iscredit = false;
+        let camount = '0';
         let token = Math.random().toString(32).substring(5).toUpperCase();
         if (type_vr.toLowerCase() == 'pro') ispro = true;
         if (type_vr.toLowerCase() == 'subdomain') issubdomain = true;
+        if (type_vr.toLowerCase() == 'credit') iscredit = true;
+        if (type_vr.toLowerCase() == 'credit' && years_vr) { camount = years_vr; if (!camount.includes('.')) camount = `${camount}.00`; };
+
+        let yr = new Date().setFullYear(new Date().getFullYear()+1);
+        if (years_vr && !isNaN(years_vr) && years_vr > 0 && years_vr < 251) yr = new Date().setFullYear(new Date().getFullYear()+parseInt(years_vr));
+        if (type_vr.toLowerCase() == 'credit') yr = null;
 
         new receipt({
             user: null,
@@ -1856,10 +1900,11 @@ a.post('/admin/receipt/:uuid', async function (req, res) {
             subdomain: issubdomain,
             customdomain: iscustomdomain,
             badge: isbadge,
+            credit: iscredit,
             gift: true,
             admin_gift: false,
             gift_from: u._id,
-            amount: "0",
+            amount: camount,
             valid_until: yr,
             valid: true,
             uuid: randomUUID(),
@@ -1867,6 +1912,57 @@ a.post('/admin/receipt/:uuid', async function (req, res) {
         }).save();
 
         res.json({ OK: true, status: 200, text: `Created receipt: ${token}` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
+    };
+});
+
+a.post('/admin/account/credits/:uuid', async function (req, res) {
+    let { session } = req.cookies;
+    let { uuid } = req.params;
+    let { cred_vr } = req.body;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!cred_vr) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+
+        let u = await user.findOne({ uuid }, { nameHistory: 0, email: 0, password: 0, pfp: 0, pfp_id: 0, banner: 0, banner_id: 0, recEmail: 0, apiKey: 0, bio: 0, url: 0, location: 0, reason: 0, linkLimit: 0, links: 0, views: 0, verified: 0, vrverified: 0, ogname: 0, pronouns: 0, hidden: 0, createdIP: 0, createdAt: 0, last_login: 0, connectedUser: 0, __v: 0, google_backup: 0, theme: 0, personal_border: 0, fonts: 0, socials: 0, signin_id: 0 }).lean();
+
+        if (!u) return res.status(404).json({ OK: false, status: 404, error: `Invalid UUID` });
+        if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `This user is blocked` });
+
+        if (!cred_vr.includes('.')) cred_vr = `${cred_vr}.00`;
+        if (cred_vr.includes('-')) cred_vr = `0.00`;
+        let camount = cred_vr;
+        if (cred_vr > 0) cred_vr = `${parseInt(u.credit)+parseInt(cred_vr)}.00`;
+
+        await user.updateOne({ uuid }, { $set: { credit: cred_vr } });
+        if (cred_vr > 0) {
+            new receipt({
+                user: u._id,
+                receipt: Math.random().toString(32).substring(5).toUpperCase(),
+                pro: false,
+                pro_plus: false,
+                subdomain: false,
+                customdomain: false,
+                badge: false,
+                credit: true,
+                gift: false,
+                admin_gift: true,
+                gift_from: null,
+                amount: camount,
+                valid_until: null,
+                valid: true,
+                uuid: randomUUID(),
+                date: Date.now()
+            }).save();
+        };
+
+        res.json({ OK: true, status: 200, text: `New credit amount: $${cred_vr}` });
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, error: e });
@@ -2212,6 +2308,63 @@ a.get('/admin/cached_images/:name', async function (req, res) {
         if (s && !s.blocked && !s.hidden) result = { OK: true, status: 200, loaded: { avatar: av, banner: bn, favicon: fi } };
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify(result, null, 2.5));
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, status: 500, error: `Unable to load this endpoint` });
+    };
+});
+
+a.post('/admin/create_verified_session', async function (req, res) {
+    let { session } = req.cookies;
+    let { OAuth } = req.body;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!OAuth) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+    
+        let s = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, nameHistory: 0, bio: 0, location: 0, reason: 0, pro: 0, last_login: 0, theme: 0, personal_border: 0, fonts: 0, signin_id: 0, subdomain: 0, pfp_id: 0, banner_id: 0, url: 0, pronouns: 0 }).lean();
+        if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid session` });
+        if (s.blocked) return res.status(403).json({ OK: false, status: 403, error: `Invalid session` });
+        if (!s.TFA) return res.status(403).json({ OK: false, status: 403, error: `Staff must have 2FA enabled` });
+
+        let verify = authenticator.verifyToken(decrypt(s.google_backup), `${OAuth}`);
+        if (!verify) return res.status(403).json({ OK: false, status: 403, error: `Invalid OAuth Code` });
+
+        let code = randomUUID();
+        authCode[code] = code;
+
+        res.cookie('verified_session', code);
+        res.json({ OK: true, status: 200, text: `Created session` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, status: 500, error: `Unable to load this endpoint` });
+    };
+});
+
+a.get('/admin/create_verified_session', async function (req, res) {
+    let { session } = req.cookies;
+    let { c } = req.query;
+
+    try {
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!c) return res.status(403).json({ OK: false, status: 403, error: `Invalid code` });
+    
+        let s = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, nameHistory: 0, bio: 0, location: 0, reason: 0, pro: 0, last_login: 0, theme: 0, personal_border: 0, fonts: 0, signin_id: 0, subdomain: 0, pfp_id: 0, banner_id: 0, url: 0, pronouns: 0 }).lean();
+        if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid session` });
+        if (s.blocked) return res.status(403).json({ OK: false, status: 403, error: `Invalid session` });
+        if (!s.TFA) return res.status(403).json({ OK: false, status: 403, error: `Staff must have 2FA enabled` });
+
+        if (c !== process.env.ADMIN_SESSION_CODE) return res.status(403).json({ OK: false, status: 403, error: `Invalid code` });
+        
+        let code = randomUUID();
+        authCode[code] = code;
+
+        res.cookie('verified_session', code);
+        res.json({ OK: true, status: 200, text: `Created session` });
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, status: 500, error: `Unable to load this endpoint` });

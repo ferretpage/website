@@ -7,13 +7,12 @@
 </head>
 <body class="bg-meowmail-main dark:bg-ayyblue-black">
     <%- include('../meta/nav'); %>
-    <h1 class="font-bold text-4xl text-center mb-4 dark:text-white">Admin Panel</h1>
+    <h1 class="font-bold text-4xl text-center mb-4 dark:text-white">Admin Panel</h1><% if (isVerified) {%>
     <div class="w-fit m-auto break-words text-lg p-2">
         <table class="border-2 border-black text-center align-middle break-all dark:text-white">
             <thead>
               <tr>
                 <th class="p-2">User</th>
-                <th class="p-2">E-Mail</th>
                 <th class="p-2">Joined</th>
                 <th class="p-2">Verified</th>
                 <th class="p-2">Details</th>
@@ -22,14 +21,55 @@
             <tbody class="font-bold">
               <tr>
                 <td class="p-2"><a class="hover:text-current hover:underline" href="/<%=elm.name%>" target="_blank">@<% if (elm.name !== "") {%><%=elm.name%><%} else {%><%=elm.uuid%><%}%></a></td>
-                <td class="p-2" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Joined: <%= new Date(parseInt(elm.createdAt)).toLocaleString() %>"><% const [name, domain] = elm.email.split('@'); let email = `${name[0]}${new Array(name.length - 1).join('*')}${name[name.length - 1]}@${domain}`; %><%=email%></td>
                 <td class="p-2"><time data-time="<%=elm.createdAt%>"></time></td>
-                <td class="p-2"><%=elm.vrverified%></td>
+                <td class="p-2"><%=elm.verified%></td>
                 <td class="p-2"><a class="hover:text-current hover:underline" href="/<%=elm.uuid%>/edit" target="_blank">Edit</a></td>
               </tr>
             </tbody><%})%>
         </table>
-    </div><br><br>
+    </div><%} else {%>
+    <div class="w-fit m-auto break-words text-lg p-2">
+      <button type="button" class="btn btn-secondary" style="background-color: rgb(80, 80, 228); border-color: black; border-width: .5px;" data-bs-toggle="modal" data-bs-target="#allow">Verify Account!</button>
+      <form id="createSession">
+        <div class="modal fade" id="allow" tabindex="-1" aria-labelledby="allowModalLabel" aria-hidden="true">
+          <div class="modal-dialog my-8 md:my-2">
+              <div class="modal-content">
+                  <div class="modal-header">
+                      <h5 class="modal-title" id="editModalLabel">WAIT! <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                      <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                  </div>
+                  <div class="modal-body">
+                      <div id="errorP" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                      <div class="form-row align-items-center">
+                          <div class="col-auto" style="width: 90%; margin: auto;">
+                            <input type="text" class="form-control focus:ring-3 focus:ring-[#5050e4]" id="oauth2" placeholder="Google Authenticator" name="OAuth" autocomplete="off" maxlength="6" required>
+                            <div class="my-1"></div>
+                            <h1>We need to verify your account! Please enter your Google Authenticator code here</h1>
+                            <div class="my-1"></div>
+                            <svg width="98px" id="loading2" class="hidden" version="1.1" id="L9" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 0 0" xml:space="preserve">
+                                <path fill="currentColor" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50">
+                                    <animateTransform 
+                                       attributeName="transform" 
+                                       attributeType="XML" 
+                                       type="rotate"
+                                       dur="2s" 
+                                       from="0 50 50"
+                                       to="360 50 50" 
+                                       repeatCount="indefinite" />
+                                </path>
+                            </svg>
+                          </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-secondary" style="background-color: rgb(80, 80, 228); border-color: black; border-width: .5px;">Verify</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        </div>
+      </form>
+    </div><%}%><br><br>
     <script defer>
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
@@ -40,19 +80,20 @@
             $(this).html(time);
         });
 
-        $('#pasteText').submit(function (e) {
+        $('#createSession').submit(function (e) {
           e.preventDefault();
           const formData = new URLSearchParams(new FormData(this));
 
-          fetch('/api/paste/create', { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
-            $('#errorPaste').text('');
-            $('#errorPaste').toggleClass(false);
+          fetch('/api/admin/create_verified_session', { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+            $('#errorP').text('');
+            $('#errorP').toggleClass(false);
             if (!b.error) {
-              $('#errorPaste').text(`Created Paste: https://had.contact/api${b.message}`);
-              $('#errorPaste').addClass('alert alert-success my-1');
+              $('#errorP').text(b.text);
+              $('#errorP').addClass('alert alert-success my-1');
+              window.location.reload();
             } else {
-              $('#errorPaste').text(b.error);
-              $('#errorPaste').addClass('alert alert-danger my-1');
+              $('#errorP').text(b.error);
+              $('#errorP').addClass('alert alert-danger my-1');
             }
           }).catch(e => {
             console.log(e);
