@@ -548,7 +548,6 @@ a.post('/v1/reset-password', async function (req, res) {
     });
     if (!u) return res.status(403).json({ OK: false, status: 403, error: `Account does not exist with that E-Mail` });
     if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `@${u.name} is currently blocked` });
-    TFA_VR = authenticator.generateToken(decrypt(u.google_backup));
     if (u.TFA && !TFA_VR || !authenticator.verifyToken(decrypt(u.google_backup), TFA_VR)) return res.status(403).json({ OK: false, status: 403, error: `Invalid 2FA Code` });
 
     try {
