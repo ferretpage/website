@@ -533,6 +533,108 @@ a.get('/verify/no/:uid', async function (req, res) {
     });
 });
 
+a.post('/v1/reset-password', async function (req, res) {
+    let { session } = req.cookies;
+    let { email_VR, TFA_VR, code_VR } = req.body;
+
+    if (!email_VR) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+    if (!code_VR) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
+    if (code_VR !== authCode[code_VR]) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
+
+    let uC = await user.find({  }, { email: 1, password: 1, uuid: 1, TFA: 1, google_backup: 1, blocked: 1, flag: 1, name: 1, displayName: 1, memorialize: 1, signin_id: 1 }).lean();
+    let u = null;
+    uC.forEach(elm => {
+        if (elm && decrypt(elm.email) == email_VR.toLowerCase() && elm.signin_id == cryptojs.MD5(decrypt(elm.email)).toString().slice(24)) u = elm;
+    });
+    if (!u) return res.status(403).json({ OK: false, status: 403, error: `Account does not exist with that E-Mail` });
+    if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `@${u.name} is currently blocked` });
+    TFA_VR = authenticator.generateToken(decrypt(u.google_backup));
+    if (u.TFA && !TFA_VR || !authenticator.verifyToken(decrypt(u.google_backup), TFA_VR)) return res.status(403).json({ OK: false, status: 403, error: `Invalid 2FA Code` });
+
+    try {
+        let confT = randomUUID();
+        authCode[confT] = { code: confT, uuid: u.uuid };
+        let transporter = nodemailer.createTransport({
+            host: "webserver4.pebblehost.com",
+            port: 465,
+            secure: true,
+            auth: {
+                user: "no-reply@ferret.page",
+                pass: `${process.env.PASSWORD}`,
+            },
+        });
+    
+        let msg = {
+            from: '"no-reply@ferret.page" <no-reply@ferret.page>',
+            to: `${decrypt(u.email).toLowerCase()}`,
+            subject: "Reset Account Password",
+            html: `<html><h4>Hello ${u.displayName} (@${u.name})!</h4></br><h3>You can reset your password by clicking <a href="http://${req.hostname}/reset-password?code=${confT}" target="_blank">here</a></h3><br><br><p>If the link does not work then you may need to request a new one.</p></html>`, // html body
+        };
+
+        delete authCode[code_VR];
+        const info = await transporter.sendMail(msg);
+        res.json({ OK: true, status: 200, text: 'Started account recovery' });
+    } catch (e) {
+        return res.status(500).json({ OK: false, status: 500, error: `An error has happened` });
+    };
+});
+
+a.post('/v1/reset-password/conf', async function (req, res) {
+    let { session } = req.cookies;
+    let { password_VR, conf_pass_VR, code_VR, AuthCode_VR } = req.body;
+
+    if (!password_VR || !conf_pass_VR) return res.status(403).json({ OK: false, status: 403, error: `Missing Fields` });
+    if (!code_VR || !AuthCode_VR) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
+    if (code_VR !== authCode[code_VR]) return res.status(403).json({ OK: false, status: 403, error: `Invalid authentication code` });
+    if (AuthCode_VR !== authCode[AuthCode_VR].code) return res.status(403).json({ OK: false, status: 403, error: `Invalid Reset Token` });
+
+    if (password_VR !== conf_pass_VR) return res.status(403).json({ OK: false, status: 403, error: `Passwords must match` });
+    if (password_VR.length < 6) return res.status(403).json({ OK: false, status: 403, error: `Password must be longer than 6` });
+    if (password_VR.length > 128) return res.status(403).json({ OK: false, status: 403, error: `Password must be shorter than 128` });
+
+    let u = await user.findOne({ uuid: authCode[AuthCode_VR].uuid }, { email: 1, password: 1, uuid: 1, TFA: 1, google_backup: 1, blocked: 1, flag: 1, name: 1, displayName: 1, memorialize: 1, signin_id: 1, _id: 1 }).lean();
+    if (!u) return res.status(404).json({ OK: false, status: 404, error: `Invalid UUID` });
+    if (u.blocked) return res.status(403).json({ OK: false, status: 403, error: `This user is blocked` });
+    if (password_VR == decrypt(u.password)) return res.status(403).json({ OK: false, status: 403, error: `Please use a different password` });
+
+    try {
+        let transporter = nodemailer.createTransport({
+            host: "webserver4.pebblehost.com",
+            port: 465,
+            secure: true,
+            auth: {
+                user: "no-reply@ferret.page",
+                pass: `${process.env.PASSWORD}`,
+            },
+        });
+    
+        let msg = {
+            from: '"no-reply@ferret.page" <no-reply@ferret.page>',
+            to: `${decrypt(u.email).toLowerCase()}`,
+            subject: "Account Password Changed",
+            html: `<html><h4>Hello ${u.displayName} (@${u.name})!</h4></br><h3>Your account password has been successfully changed.</h3><br><br><p>If you did not do this change then please contact our support team: support@ferret.page</p></html>`, // html body
+        };
+
+        await user.updateOne({ uuid: u.uuid }, { $set: { password: encrypt(password_VR) } });
+        await new notification({
+            author: u._id,
+            from: u._id,
+            text: `Your password has been changed`,
+            friendRequest: false,
+            hidden: false,
+            date: Date.now(),
+            uuid: randomUUID()
+        }).save();
+
+        delete authCode[code_VR];
+        delete authCode[AuthCode_VR];
+        const info = await transporter.sendMail(msg);
+        res.json({ OK: true, status: 200, text: 'Updated user password' });
+    } catch (e) {
+        return res.status(500).json({ OK: false, status: 500, error: `An error has happened` });
+    };
+});
+
 a.post('/v1/account/edit', async function (req, res) {
     let { session } = req.cookies;
     let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr, border_vr } = req.body;

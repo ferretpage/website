@@ -151,6 +151,26 @@ a.get('/signout', async function (req, res) {
     res.redirect('/');
 });
 
+a.get('/reset-password', async function (req, res) {
+    let { session, theme } = req.cookies;
+    let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
+    
+    if (session) {
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
+    };
+
+    let co = null;
+    if (req.query.code && authCode[req.query.code]) co = authCode[req.query.code];
+    if (req.query.code && !authCode[req.query.code]) return res.redirect('/reset-password');
+
+    let code = randomUUID();
+    authCode[code] = code;
+    res.render('auth/reset-password', { theme, acc, code, domain: `${req.protocol}://${req.hostname}`, co });
+});
+
 a.get('/tos', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
