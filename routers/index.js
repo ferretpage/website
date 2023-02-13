@@ -6,6 +6,7 @@ let path = require('path');
 const { verify, randomUUID } = require('crypto');
 const cryptojs = require('crypto-js');
 const qrcode = require('qrcode');
+const twemoji = require('twemoji');
 let nD = new Date();
 
 function encrypt(g, s = process.env.SALT) {
@@ -212,11 +213,20 @@ a.get('/dashboard', async function (req, res) {
     let qrl = `${req.protocol}://${req.hostname}/${acc.name}`;
     if (acc.subdomain) qrl = `${req.protocol}://${acc.name.toLowerCase()}.${req.hostname}`;
 
+    let bdF;
+    let bd = await badge.findOne({ "users.user": acc._id, "users.disabled": false }).lean();
+
+    if (bd) {
+        bd.users.forEach(elm => {
+            if (elm.user == acc._id) bdF = { elm, badge: bd.badge, text: bd.text, info: bd.info };
+        });
+    };
+
     qrcode.toDataURL(qrl, function (err, url) {
         let qr = null;
         if (url) qr = url;
 
-        res.render('account/dashboard', { theme, acc, links, qr, code, domain: `${req.protocol}://${req.hostname}` });
+        res.render('account/dashboard', { theme, acc, links, qr, code, domain: `${req.protocol}://${req.hostname}`, badge: bdF });
     });
 });
 
@@ -619,6 +629,27 @@ a.get('/favicon/:id', async function (req, res) {
         'Content-Length': icon.headers.get('content-length')
     });
     res.end(buffer, 'binary');
+});
+
+a.get('/badge/:uid', async function (req, res) {
+    badge.findOne({ "users.user": req.params.uid, "users.disabled": false }, async function (e, r) {
+        if (!r) return res.sendStatus(404);
+        let user = null;
+        r.users.forEach(function (u) { if (u.uid == req.params.uid) user = u; });
+        if (user && user.disabled) return res.sendStatus(404);
+        let par = twemoji.convert.toCodePoint(r.badge);
+        try {
+            let data = path.join(__dirname + "../../public/i/emoji/" + par + ".svg");
+            if (!fs.lstatSync(data).isFile()) {
+                data = path.join(__dirname + "../../public/i/assets/" + par + ".gif");
+            };
+            res.sendFile(data);
+        } catch (e) {
+            if (e.code !== "ENOENT") console.log(e);
+            if (e.code == "ENOENT" && e.syscall == "lstat") { data = path.join(__dirname + "../../public/i/assets/" + par + ".gif"); return res.sendFile(data); }
+            res.sendStatus(500);
+        };
+    }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]);
 });
 
 a.get('/:user', async function (req, res) {

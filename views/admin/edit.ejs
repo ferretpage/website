@@ -254,10 +254,11 @@
                               <option value="pro">Pro Plan</option>
                               <option value="subdomain">Subdomain</option>
                               <option value="credit">Credit</option>
+                              <option value="badge">Badge</option>
                             </select>
                             <div class="form-floating mb-2 break-all">
                               <input type="text" class="form-control" placeholder="1 Year" id="Years" name="years_vr" value="1" autocomplete="off" required></input>
-                              <label for="Years">Years/Credit Amount</label>
+                              <label for="Years">Years/Credit Amount/Badge</label>
                             </div>
                           </div>
                         </div>
@@ -379,9 +380,10 @@
             e.preventDefault();
             const formData = new URLSearchParams(new FormData(this));
             let av = document.getElementById('Recspinner');
+            let dd = document.getElementById('Years');
 
             av.setAttribute('class', 'm-auto spinner-border');
-            fetch('/api/admin/receipt/<%=view.uuid%>', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+            fetch(`/api/admin/receipt/<%=view.uuid%>?badge=${dd.value}`, { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
               $('#errorRec').text('');
               $('#errorRec').toggleClass(false);
               av.setAttribute('class', 'hidden');

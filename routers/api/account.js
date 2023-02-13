@@ -136,7 +136,7 @@ a.get('/v1/auth', async function (req, res) {
                 await receipt.updateOne({ user: s._id, uuid: elm.uuid }, { $set: { valid: false } });
                 await user.updateOne({ uuid: s.uuid }, { $set: { credit: elm.amount } });
             };
-            if (new Date() > elm.valid_until && !elm.credit) {
+            if (new Date() > elm.valid_until && !elm.credit && !elm.badge) {
                 await receipt.updateOne({ user: s._id, uuid: elm.uuid }, { $set: { valid: false } });
                 if (elm.pro) { await user.updateOne({ uuid: s.uuid }, { $set: { pro: false, linklimit: "25", theme: "" } }) };
                 if (elm.subdomain) { await user.updateOne({ uuid: s.uuid }, { $set: { subdomain: false } }) };
@@ -1504,6 +1504,10 @@ a.get('/v1/redeem/:id', async function (req, res) {
     if (sendto.subdomain && rec.subdomain) return res.status(403).json({ OK: false, status: 403, error: `${sendto.displayName} already has this plan enabled` });
 
     await receipt.updateOne({ uuid: rec.uuid }, { $set: { user: sendto._id } });
+    if (rec.badge && rec.receipt.split('-')[1]) {
+        await badge.updateOne({ badge: rec.receipt.split('-')[1] }, { $push: { users: { user: sendto._id, disabled: false, date: Date.now() } } });
+        return res.json({ OK: true, status: 200, text: `Redeemed User Badge` });
+    };
 
     res.json({ OK: true, status: 200, text: `Added $${rec.amount} to your balance` });
 });
@@ -1969,6 +1973,7 @@ a.post('/admin/receipt/:uuid', async function (req, res) {
         if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
 
         if (!type_vr) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+        if (type_vr.toLowerCase() == 'badge' && !req.query.badge) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
 
         let s = await user.findOne({ session }, { nameHistory: 0, email: 0, password: 0, pfp: 0, pfp_id: 0, banner: 0, banner_id: 0, recEmail: 0, apiKey: 0, bio: 0, url: 0, location: 0, reason: 0, linkLimit: 0, links: 0, views: 0, verified: 0, vrverified: 0, ogname: 0, pro: 0, pronouns: 0, hidden: 0, createdIP: 0, createdAt: 0, last_login: 0, connectedUser: 0, __v: 0, google_backup: 0, theme: 0, personal_border: 0, fonts: 0, socials: 0, signin_id: 0, subdomain: 0 }).lean();
         let u = await user.findOne({ uuid }, { nameHistory: 0, email: 0, password: 0, pfp: 0, pfp_id: 0, banner: 0, banner_id: 0, recEmail: 0, apiKey: 0, bio: 0, url: 0, location: 0, reason: 0, linkLimit: 0, links: 0, views: 0, verified: 0, vrverified: 0, ogname: 0, pronouns: 0, hidden: 0, createdIP: 0, createdAt: 0, last_login: 0, connectedUser: 0, __v: 0, google_backup: 0, theme: 0, personal_border: 0, fonts: 0, socials: 0, signin_id: 0 }).lean();
@@ -1988,10 +1993,13 @@ a.post('/admin/receipt/:uuid', async function (req, res) {
         if (type_vr.toLowerCase() == 'subdomain') issubdomain = true;
         if (type_vr.toLowerCase() == 'credit') iscredit = true;
         if (type_vr.toLowerCase() == 'credit' && years_vr) { camount = years_vr; if (!camount.includes('.')) camount = `${camount}.00`; };
+        if (type_vr.toLowerCase() == 'badge') isbadge = true;
 
         let yr = new Date().setFullYear(new Date().getFullYear()+1);
         if (years_vr && !isNaN(years_vr) && years_vr > 0 && years_vr < 251) yr = new Date().setFullYear(new Date().getFullYear()+parseInt(years_vr));
         if (type_vr.toLowerCase() == 'credit') yr = null;
+
+        if (isbadge && req.query.badge) token = `${token}-${req.query.badge}`;
 
         new receipt({
             user: null,
