@@ -213,20 +213,24 @@ a.get('/dashboard', async function (req, res) {
     let qrl = `${req.protocol}://${req.hostname}/${acc.name}`;
     if (acc.subdomain) qrl = `${req.protocol}://${acc.name.toLowerCase()}.${req.hostname}`;
 
-    let bdF;
-    let bd = await badge.findOne({ "users.user": acc._id, "users.disabled": false }).lean();
+    let bdF = [];
+    let bdA;
+    let bd = await badge.find({ "users.user": acc._id }).lean();
 
     if (bd) {
-        bd.users.forEach(elm => {
-            if (elm.user == acc._id) bdF = { elm, badge: bd.badge, text: bd.text, info: bd.info };
-        });
+        for (let i = 0; i < bd.length; i++) {
+            bd[i].users.forEach(elm => {
+                if (elm.user == acc._id) bdF.push({ elm, badge: bd[i].badge, text: bd[i].text, info: bd[i].info, id: bd[i].id });
+                if (elm.user == acc._id && !elm.disabled) bdA = { elm, badge: bd[i].badge, text: bd[i].text, info: bd[i].info, id: bd[i].id };
+            });
+        };
     };
 
     qrcode.toDataURL(qrl, function (err, url) {
         let qr = null;
         if (url) qr = url;
 
-        res.render('account/dashboard', { theme, acc, links, qr, code, domain: `${req.protocol}://${req.hostname}`, badge: bdF });
+        res.render('account/dashboard', { theme, acc, links, qr, code, domain: `${req.protocol}://${req.hostname}`, badge: bdF, activeBadge: bdA });
     });
 });
 
@@ -306,8 +310,8 @@ a.get('/my/purchases', async function (req, res) {
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
     let u = await user.findOne({ session }, { views: 0, connectedUsers: 0 }).lean();
-    let rec = await receipt.find({ user: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
-    let gifts = await receipt.find({ gift_from: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let rec = await receipt.find({ user: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }, { path:"user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let gifts = await receipt.find({ gift_from: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }, { path:"user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
     let p = null;
     let t = null;
     let redeem_code = null;
@@ -339,8 +343,8 @@ a.get('/:uuid/purchases', async function (req, res) {
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
     let u = await user.findOne({ uuid: req.params.uuid }, { views: 0, connectedUsers: 0 }).lean();
-    let rec = await receipt.find({ user: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
-    let gifts = await receipt.find({ gift_from: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let rec = await receipt.find({ user: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }, { path:"user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
+    let gifts = await receipt.find({ gift_from: u._id }).populate([{ path:"gift_from", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }, { path:"user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
     let p = null;
     let t = null;
 

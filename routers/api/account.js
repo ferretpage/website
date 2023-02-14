@@ -763,6 +763,29 @@ a.post('/v1/account/edit_socials', async function (req, res) {
     res.json({ OK: true, status: 200, status: `Updated socials` });
 });
 
+a.post('/v1/account/edit_badge', async function (req, res) {
+    let { session } = req.cookies;
+    let { badges_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    if (!badges_vr) return res.status(404).json({ OK: false, status: 404, error: `Missing fields` });
+    let acc = await user.findOne({ session }, { _id: 1, views: 0, connectedUser: 0 }).lean();
+    let b = await badge.findOne({ "users.user": acc._id, id: badges_vr }).lean();
+
+    let data;
+    if (b) {
+        b.users.forEach(elm => {
+            if (elm.user == acc._id.toString()) data = elm;
+        });
+    };
+
+    await badge.updateMany({ "users.user": acc._id }, { $set: { "users.$.disabled": true } });
+    if (data) await badge.updateOne({ "users.user": acc._id, id: b.id }, { $set: { "users.$": { user: data.user, disabled: false, date: data.date } } });
+    res.json({ OK: true, status: 200, status: `Updated badge` });
+});
+
 a.post('/v1/account/edit/avatar', async function (req, res) {
     let { session } = req.cookies;
 

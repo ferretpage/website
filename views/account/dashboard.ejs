@@ -141,7 +141,6 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-collection-fill self-center mr-2" viewBox="0 0 16 16"><path d="M0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zM2 3a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 0-1h-11A.5.5 0 0 0 2 3zm2-2a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 0-1h-7A.5.5 0 0 0 4 1z"/></svg>
               <p>Socials</p>
             </div>
-
             <div class="hidden" id="createSocail2_VR">
               <form id="socials-form">
                 <div class="hidden" role="alert" id="Serror"></div>
@@ -155,6 +154,10 @@
                 </div>
                 <div class="w-fit m-auto"><button type="submit" class="btn btn-primary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;" type="submit" id="socials_button">Update Socials</button></div>
               </form>
+            </div>
+            <div class="flex align-middle w-fit m-auto hover:underline hover:cursor-pointer dark:text-white" id="enableBadge_VR" data-bs-toggle="modal" data-bs-target="#changeBadge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-patch-question-fill self-center mr-2" viewBox="0 0 16 16"><path d="M5.933.87a2.89 2.89 0 0 1 4.134 0l.622.638.89-.011a2.89 2.89 0 0 1 2.924 2.924l-.01.89.636.622a2.89 2.89 0 0 1 0 4.134l-.637.622.011.89a2.89 2.89 0 0 1-2.924 2.924l-.89-.01-.622.636a2.89 2.89 0 0 1-4.134 0l-.622-.637-.89.011a2.89 2.89 0 0 1-2.924-2.924l.01-.89-.636-.622a2.89 2.89 0 0 1 0-4.134l.637-.622-.011-.89a2.89 2.89 0 0 1 2.924-2.924l.89.01.622-.636zM7.002 11a1 1 0 1 0 2 0 1 1 0 0 0-2 0zm1.602-2.027c.04-.534.198-.815.846-1.26.674-.475 1.05-1.09 1.05-1.986 0-1.325-.92-2.227-2.262-2.227-1.02 0-1.792.492-2.1 1.29A1.71 1.71 0 0 0 6 5.48c0 .393.203.64.545.64.272 0 .455-.147.564-.51.158-.592.525-.915 1.074-.915.61 0 1.03.446 1.03 1.084 0 .563-.208.885-.822 1.325-.619.433-.926.914-.926 1.64v.111c0 .428.208.745.585.745.336 0 .504-.24.554-.627z"/></svg>
+              <p>Badges</p>
             </div>
             <img id="Sloading" src="/public/i/assets/radar_loading.svg" width="84" height="84" class="hidden" draggable="false">
           </div>
@@ -350,6 +353,42 @@
                   </div>
                 </div>
               </div>
+            </form>
+            <form id="badge-form">
+              <div class="modal fade" id="changeBadge" tabindex="-1" aria-labelledby="changeBadgeModalLabel" aria-hidden="true">
+                  <div class="modal-dialog my-8 md:my-2">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title text-black" id="editBadgeLabel">Edit Badge: <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex -mt-1" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                      <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                    </div>
+                    <div class="modal-body text-black">
+                      <div id="errorBa" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                      <div class="form-row align-items-center">
+                        <div class="form-row align-items-center">
+                          <div class="col-auto" style="width: 75%; margin: auto;"><% if (badge && badge.length > 0) {%>
+                            <label class="input-group-text hidden" for="badgeGroup">Badges</label>
+                            <select class="form-select mb-2" id="badgeGroup" name="badges_vr">
+                              <option value="none">None</option><% if (badge && badge.length > 0) {%>
+                              <% badge.forEach((elm) => {%><% if (elm.elm.disabled) {%><option value="<%=elm.id%>"><%=elm.badge%>: <%=elm.text%> Badge</option><%} else {%><option value="<%=elm.id%>" selected><%=elm.badge%>: <%=elm.text%> Badge</option><%}%><%})%><%}%>
+                            </select><%} else {%>
+                            <h2 class="text-2xl font-bold text-center w-fit m-auto">Uh Oh! It seems like you don't have any badges!</h2><%}%>
+                          </div>
+                        </div>
+                        <div class="w-fit m-auto">
+                          <div class="hidden" id="BAspinner" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button><% if (badge && badge.length > 0) {%>
+                          <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Save changes</button><%}%>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </form><% if (acc.pro) {%>
             <form id="font-form">
               <div class="modal fade" id="changeFonts" tabindex="-1" aria-labelledby="changeFontsModalLabel" aria-hidden="true">
@@ -399,7 +438,7 @@
         <div class="w-fit m-auto break-words p-2 text-lg text-center dark:text-white">
             <div class="bg-zinc-300 dark:bg-zinc-700 p-2 rounded border-2 border-black mt-12" id="mainBorder">
                 <img src="/avatar/<%= acc.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-2 bg-zinc-300" style="margin: auto; margin-top: -45px;" draggable="false">
-                <h2 class="font-bold text-4xl inline-flex" style="font-family: '<% if (acc.fonts && acc.fonts !== '') {%><%=acc.fonts%><%} else {%>Cabin<%}%>', sans-serif;" id="previewDisplayName"><%= acc.displayName %><% if (badge) {%><span class="align-middle mt-3 ml-1"><img width="18" height="18" src="/badge/<%=acc._id%>" data-bs-toggle="tooltip" data-bs-placement="top" title="<%=badge.text%> Badge"></span><%}%><% if (acc.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (acc.theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (acc.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (acc.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2>
+                <h2 class="font-bold text-4xl inline-flex" style="font-family: '<% if (acc.fonts && acc.fonts !== '') {%><%=acc.fonts%><%} else {%>Cabin<%}%>', sans-serif;" id="previewDisplayName"><%= acc.displayName %><% if (activeBadge) {%><span class="align-middle mt-3 ml-1"><img width="18" height="18" src="/badge/<%=acc._id%>" data-bs-toggle="tooltip" data-bs-placement="top" title="<%=activeBadge.text%> Badge"></span><%}%><% if (acc.vrverified) {%><a href="/help/verified-accounts" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/verified<% if (acc.theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 mt-3" title="Verified badge" draggable="false"></a><%}%><% if (acc.ogname) {%><a href="/help/rare-usernames" class="hover:text-current w-fit h-fit"><img src="/public/i/assets/og<% if (theme == 'dark') {%>_dark<%}%>.svg" class="ml-1 <% if (acc.vrverified) {%>mt-3<%} else {%>mt-[12.5px]<%}%> w-[18px] h-[18px]" title="Rare Username badge" draggable="false"></a><%}%></h2>
                 <div class="flex flex-wrap gap-2"><% if (acc.location && acc.location !== "" && acc.location !== " ") {%>
                   <h4 class="font-bold text-xl text-gray-600 dark:text-gray-400 flex w-fit m-auto"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="gray" class="bi bi-geo-alt-fill mt-[6.5px]" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><%=acc.location%></h4>
                 <%}%><% if (acc.pronouns && acc.pronouns !== "") {%>
@@ -510,7 +549,7 @@
             let change = misc.getAttribute('class');
             
             if (change == "hidden") {
-              misc.setAttribute('class', 'flex flex-auto gap-2 w-fit m-auto mt-1');
+              misc.setAttribute('class', 'flex flex-auto gap-2 w-fit m-auto mt-1 mb-2');
             };
             if (change !== "hidden") {
               misc.setAttribute('class', 'hidden');
@@ -619,6 +658,29 @@
                 } else {
                     $('#error').text(b.error);
                     $('#error').addClass('alert alert-danger break-normal my-1 text-center');
+                };
+            });
+    
+            loading.setAttribute('class', 'm-auto mt-1');
+        });
+
+        $('#badge-form').submit(function (e) {
+            e.preventDefault();
+            let loading = document.getElementById('BAspinner');
+            const formData = new URLSearchParams(new FormData(this));
+
+            $('#errorBa').text('');
+            $('#errorBa').toggleClass(false);
+
+            loading.setAttribute('class', 'm-auto spinner-border');
+            fetch(`/api/v1/account/edit_badge`, { method: 'post', body: formData }).then((r)=>r.json()).then((b)=>{
+                loading.setAttribute('class', 'hidden');
+                if (b.OK) {
+                    console.log(b);
+                    window.location.assign(`/dashboard`);
+                } else {
+                    $('#errorBa').text(b.error);
+                    $('#errorBa').addClass('alert alert-danger break-normal my-1 text-center');
                 };
             });
     

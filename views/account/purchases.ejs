@@ -9,7 +9,7 @@
     <%- include('../meta/nav'); %>
     <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your balance: $<%=parseInt(acc.credit).toLocaleString('en-US')%></h1>
     <div class="w-fit m-auto break-words p-2 text-lg dark:text-white">
-        <div class="flex flex-auto gap-2 m-auto w-min md:w-fit"><% if (p) { p.forEach((elm) => {%>
+        <div class="flex flex-wrap gap-2 m-auto w-min md:w-fit"><% if (p) { p.forEach((elm) => {%>
             <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded m-auto p-4 text-center">
                 <h4>Receipt ID: <span class="font-bold"><%=elm.receipt%></span></h4>
                 <h4>Plan: <span class="font-bold"><% if (elm.pro) {%>Pro<%}%><% if (elm.subdomain) {%>Subdomain<%}%><% if (elm.credit) {%>Credits<%}%><% if (elm.badge) {%><%=elm.receipt.split('-')[1]%><%}%></span></h4><% if (elm.gift) {%>
@@ -18,11 +18,27 @@
                 <h4>Purchase Date: <span class="font-bold"><time data-time="<%=new Date(elm.date).valueOf()%>"></time></span></h4><% if (!elm.credit && !elm.badge) {%><% let difference = elm.valid_until.getTime() - new Date().getTime(); let daysleft = Math.ceil(difference / (1000 * 3600 * 24)); %>
                 <h4>Days left: <span class="font-bold" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%=elm.valid_until%>"><% if (daysleft > 0 && elm.valid) {%><%=daysleft.toLocaleString('en-US');%><%} else {%>Expired<%}%></span></h4><%}%>
             </div><%})} else {%><h1 class="text-2xl dark:text-white">Seems a bit empty here. . .</h1><%}%>
+        </div><br>
+        <div class="w-[75%] m-auto text-center">
+          <div id="errorGC" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+          
+          <form id="redeem-form" class="form-floating mb-2 break-all">
+            <input type="text" class="form-control" placeholder="Redeem gift code" id="GC" name="gc_vr" value="<% if (redeem_code) {%><%=redeem_code%>%><%}%>" autocomplete="off" required></input>
+            <label for="GC">Redeem Gift Code</label>
+
+            <button type="submit" class="btn btn-secondary mt-2" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Redeem Code</button>
+            <div class="w-fit m-auto">
+              <div class="hidden" id="gcSpinner" role="status">
+                  <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </form>
         </div>
-        <div class="flex flex-auto gap-2 m-auto w-min md:w-fit mt-4"><% if (t) { t.forEach((elm) => {%>
+        <div class="flex flex-wrap gap-2 m-auto w-min md:w-fit mt-4"><% if (t) { t.forEach((elm) => {%>
             <div class="border-2 border-black bg-zinc-300 dark:bg-zinc-700 dark:text-white rounded m-auto p-4 text-center">
                 <h4>Receipt ID: <span class="font-bold"><%=elm.receipt%></span></h4>
-                <h4>Plan: <span class="font-bold"><% if (elm.pro) {%>Pro<%}%><% if (elm.subdomain) {%>Subdomain<%}%><% if (elm.credit) {%>Credits<%}%><% if (elm.badge) {%><%=elm.receipt.split('-')[1]%><%}%></span></h4>
+                <h4>Plan: <span class="font-bold"><% if (elm.pro) {%>Pro<%}%><% if (elm.subdomain) {%>Subdomain<%}%><% if (elm.credit) {%>Credits<%}%><% if (elm.badge) {%><%=elm.receipt.split('-')[1]%><%}%></span></h4><% if (elm.gift) {%>
+                <h4>Gifed for: <span class="font-bold"><% if (elm.user) {%><a class="hover:text-current hover:underline hover:cursor-pointer" href="/<%=elm.user.name%>" target="__blank"><%=elm.user.name%></a><%} else {%>Not Gifted Yet...<%}%></span></h4><%}%>
                 <h4>Purchase Amount: <span class="font-bold">$<%=parseInt(elm.amount).toLocaleString('en-US')%></span></h4>
                 <h4>Purchase Date: <span class="font-bold"><time data-time="<%=new Date(elm.date).valueOf()%>"></time></span></h4><% if (!elm.credit && !elm.badge) {%><% let difference = elm.valid_until.getTime() - new Date().getTime(); let daysleft = Math.ceil(difference / (1000 * 3600 * 24)); %>
                 <h4>Days left: <span class="font-bold" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%=elm.valid_until%>"><% if (daysleft > 0 && elm.valid) {%><%=daysleft.toLocaleString('en-US');%><%} else {%>Expired<%}%></span></h4><%}%><% if (!elm.user && elm.gift_from) {%>
@@ -67,21 +83,6 @@
                 </div>
             </form><%}%><%})} else {%><h1 class="text-2xl dark:text-white">No previous transactions found. . .</h1><%}%>
         </div><br><br>
-        <div class="w-[75%] m-auto text-center">
-          <div id="errorGC" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
-          
-          <form id="redeem-form" class="form-floating mb-2 break-all">
-            <input type="text" class="form-control" placeholder="Redeem gift code" id="GC" name="gc_vr" value="<% if (redeem_code) {%><%=redeem_code%>%><%}%>" autocomplete="off" required></input>
-            <label for="GC">Redeem Gift Code</label>
-
-            <button type="submit" class="btn btn-secondary mt-2" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Redeem Code</button>
-            <div class="w-fit m-auto">
-              <div class="hidden" id="gcSpinner" role="status">
-                  <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          </form>
-        </div>
     </div>
     <script defer>
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
@@ -123,7 +124,7 @@
             let d = document.getElementById('GC');
             let av = document.getElementById('gcSpinner');
 
-            av.setAttribute('class', 'm-auto spinner-border');
+            av.setAttribute('class', 'm-auto spinner-border mt-2');
             fetch(`/api/v1/redeem/${d.value}`, { method: 'get' }).then((r)=>r.json()).then((w)=>{
               $('#errorGC').text('');
               $('#errorGC').toggleClass(false);
