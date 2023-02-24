@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: 'Shop' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Your balance: $<%=parseInt(acc.credit).toLocaleString('en-US')%></h1><% if (error) {%>
+    <div id="errorCode" class="alert alert-danger my-1 text-center text-4xl font-bold" role="alert" style="max-width: max-content; margin: auto;"><%=error%></div><%}%>
+    <div class="w-fit m-auto break-words p-2 text-lg dark:text-white">
+        <div class="flex flex-wrap p-1 gap-2"><% if (shopListing) { shopListing.sort((a, b) => { return a.amount - b.amount }); shopListing.forEach((elm) => {%>
+            <% if (!elm.hidden) {%><div class="card" style="width: 18rem;">
+                <img src="/shop/<%=elm.id%>" class="card-img-top h-[256px] w-[256px] m-auto" alt="Image describing this shop listing" draggable="false">
+                <div class="card-body">
+                  <h5 class="card-title font-bold"><%=elm.title%> - $<%=elm.amount%><% if (!elm.title.includes('Badge')) {%>/yr<%}%></h5><% if (staff) {%>
+                  <h5 class="card-text">ID: (<span class="font-bold"><%=elm.id%></span>)</h5><%}%>
+                  <p class="card-text text-center"><%=elm.bio%></p>
+                  <div class="w-fit mt-2 m-auto text-center"><a href="/purchase/confirm/<%=elm.id%>" class="btn btn-primary">Purchase</a></div>
+                </div>
+            </div><%}%><% if (elm.hidden && staff) {%><div class="card" style="width: 18rem;">
+                <img src="/shop/<%=elm.id%>" class="card-img-top h-[256px] w-[256px] m-auto" alt="Image describing this shop listing" draggable="false">
+                <div class="card-body">
+                  <h5 class="card-title font-bold"><%=elm.title%> - $<%=elm.amount%><% if (!elm.title.includes('Badge')) {%>/yr<%}%><% if (elm.hidden) {%> - (HIDDEN)<%}%></h5><% if (staff) {%>
+                  <h5 class="card-text">ID: (<span class="font-bold"><%=elm.id%></span>)</h5><%}%>
+                  <p class="card-text text-center"><%=elm.bio%></p>
+                  <div class="w-fit mt-2 m-auto text-center"><a href="/purchase/confirm/<%=elm.id%>" class="btn btn-primary<% if (elm.hidden) {%> disabled<%}%>">Purchase</a></div>
+                </div>
+            </div><%}});%><%} else {%><h2 class="text-2xl font-bold">Seems like the shop is currently empty...</h2><%}%>
+        </div><br><br><% if (staff) {%>
+        <div class="text-center w-fit m-auto p-2 border-2 rounded border-black bg-slate-300 dark:bg-slate-700">
+            <h1 class="text-2xl">Create Listing</h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-plus-circle-fill mt-2 m-auto hover:cursor-pointer" viewBox="0 0 16 16" data-bs-toggle="modal" data-bs-target="#createListing"> <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/> </svg>
+        </div>
+        <form id="createListing-form">
+            <div class="modal fade" id="createListing" tabindex="-1" aria-labelledby="createListingLabel" aria-hidden="true">
+                <div class="modal-dialog my-8 md:my-2">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title text-black" id="editModalLabel">Create Listing <svg xmlns="http://www.w3.org/2000/svg" draggable="false" width="16" height="16" fill="currentColor" class="bi bi-pencil-square inline-flex" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/> </svg></h5>
+                    <button type="button" data-bs-dismiss="modal" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"> <path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z"/> <path fill-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z"/> </svg></button>
+                  </div>
+                  <div class="modal-body text-black">
+                    <div id="errorList" class="" role="alert" style="max-width: max-content; margin: auto;"></div>
+                    <div class="form-row align-items-center">
+                      <div class="form-row align-items-center">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="listingTitle-default">Title</span>
+                            <input type="text" class="form-control" aria-label="Create Listing Title" aria-describedby="listingTitle-default" name="title_hc" autocomplete="off" required>
+                        </div>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="listingBio-default">Bio</span>
+                            <input type="text" class="form-control" aria-label="Create Listing Bio" aria-describedby="listingBio-default" name="bio_hc" autocomplete="off" required>
+                        </div>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="listingAmount-default">$</span>
+                            <input type="text" class="form-control" aria-label="Create Listing Amount" aria-describedby="listingAmount-default" name="amount_hc" autocomplete="off" required>
+                        </div>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="listingImage-default">Image URL</span>
+                            <input type="url" class="form-control" aria-label="Create Listing Image" aria-describedby="listingImage-default" name="image_hc" autocomplete="off" required>
+                        </div>
+                      </div>
+                      <div class="w-fit m-auto">
+                        <div class="hidden" id="Listspinner" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" style="background-color: rgb(121, 121, 133); border-color: black; border-width: .5px;" data-bs-dismiss="modal">Close</button><% if (staff) {%>
+                        <button type="submit" class="btn btn-secondary" style="background-color: rgb(51, 136, 157); border-color: black; border-width: .5px;">Create</button><%}%>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </form><br><br><%}%>
+    </div>
+    <script defer>
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+        $('time').each(function (e) {
+            time = parseInt($(this).attr('data-time'));
+            time = new Date(time).toLocaleString();
+            $(this).html(time);
+        });<% if (staff) {%>
+        $('#createListing-form').submit(function (e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+            let av = document.getElementById('Listspinner');
+
+            av.setAttribute('class', 'm-auto spinner-border');
+            fetch('/api/admin/shop/create', { method: 'post', body: formData }).then((r)=>r.json()).then((w)=>{
+
+              $('#errorList').text('');
+              $('#errorList').toggleClass(false);
+              av.setAttribute('class', 'hidden');
+              if (w.OK) {
+                $('#errorList').text(w.text);
+                $('#errorList').addClass('alert alert-success my-1 text-center');
+              } else {
+                $('#errorList').text(w.error);
+                $('#errorList').addClass('alert alert-danger my-1 text-center');
+              }
+            }).catch(e => {
+              console.log(e);
+              $('#errorList').text(e);
+              $('#errorList').addClass('alert alert-danger my-1 text-center');
+            });
+        });<%}%>
+    </script>
+</body>
+</html>

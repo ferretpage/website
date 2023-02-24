@@ -27,6 +27,7 @@ const bannerCache = require('../api/bannerCache');
 const faviconCache = require('../api/faviconCache');
 const authCode = require('../api/authCode');
 const receipt = require('../../db/account/receipt');
+const shop = require('../../db/account/shop');
 
 const b2 = new B2({
     applicationKeyId: process.env.C_API_KEYID,
@@ -178,8 +179,8 @@ a.get('/v1/account', async function (req, res) {
     let { session } = req.cookies;
     let { name, uuid } = req.query;
 
-    let acc = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, views: 0 }).lean();
-    if (!acc) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
+    let acc = await user.findOne({ session }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, views: 0 }).lean();
+    if (!acc || !acc.verified) return res.status(403).json({ OK: false, status: 403, error: `Must be authenticated to view this endpoint` });
 
     if (!name && !uuid) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
     let s;
@@ -744,7 +745,7 @@ a.post('/v1/account/edit/font', async function (req, res) {
 
 a.post('/v1/account/edit_socials', async function (req, res) {
     let { session } = req.cookies;
-    let { SDC, discord_vr } = req.body;
+    let { SDC, discord_vr, TWITT, twitter_vr } = req.body;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
@@ -758,6 +759,13 @@ a.post('/v1/account/edit_socials', async function (req, res) {
         if (!discord_vr) { await user.updateOne({ session }, { $set: { "socials.discord": "" } }); };
 
         await user.updateOne({ session }, { $set: { "socials.discord": discord_vr } });
+    };
+    if (TWITT) {
+        if (twitter_vr && twitter_vr.length > 48) return res.status(403).json({ OK: false, status: 403, error: "Length must be shorter than 48" });
+        if (twitter_vr && twitter_vr.includes('/')) return res.status(403).json({ OK: false, status: 403, error: "Please remove any slashes ('/')" });
+        if (!twitter_vr) { await user.updateOne({ session }, { $set: { "socials.twitter": "" } }); };
+
+        await user.updateOne({ session }, { $set: { "socials.twitter": twitter_vr } });
     };
 
     res.json({ OK: true, status: 200, status: `Updated socials` });
@@ -1531,8 +1539,11 @@ a.get('/v1/redeem/:id', async function (req, res) {
         await badge.updateOne({ badge: rec.receipt.split('-')[1] }, { $push: { users: { user: sendto._id, disabled: false, date: Date.now() } } });
         return res.json({ OK: true, status: 200, text: `Redeemed User Badge` });
     };
+    let text = `Added $${rec.amount} to your balance`;
+    if (rec.subdomain) text = `Added Subdomain Plan to User account`;
+    if (rec.pro) text = `Added Pro Plan to User account`;
 
-    res.json({ OK: true, status: 200, text: `Added $${rec.amount} to your balance` });
+    res.json({ OK: true, status: 200, text });
 });
 
 a.get('/account/create_auth', async function (req, res) {
@@ -2500,6 +2511,42 @@ a.get('/admin/create_verified_session', async function (req, res) {
     } catch (e) {
         console.log(e);
         res.status(500).json({ OK: false, status: 500, error: `Unable to load this endpoint` });
+    };
+});
+
+a.post('/admin/shop/create', async function (req, res) {
+    let { session } = req.cookies;
+    let { title_hc, bio_hc, amount_hc, image_hc } = req.body;
+
+    try {
+        if (!session) return res.status(403).json({ OK: false, error: `Invalid session` });
+        let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+        if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+        if (!title_hc || !bio_hc || !amount_hc || !image_hc) return res.status(403).json({ OK: false, status: 403, error: `Missing fields` });
+
+        let listingID = randomUUID().split('-');
+        listingID = `${listingID[0]}${listingID[1]}${listingID[2]}${listingID[3]}${listingID[4]}`;
+        let s = await user.findOne({ session }, { nameHistory: 0, email: 0, password: 0, pfp: 0, pfp_id: 0, banner: 0, banner_id: 0, recEmail: 0, apiKey: 0, bio: 0, url: 0, location: 0, reason: 0, linkLimit: 0, links: 0, views: 0, verified: 0, vrverified: 0, ogname: 0, pro: 0, pronouns: 0, hidden: 0, createdIP: 0, createdAt: 0, last_login: 0, connectedUser: 0, __v: 0, google_backup: 0, theme: 0, personal_border: 0, fonts: 0, socials: 0, signin_id: 0, subdomain: 0 }).lean();
+
+        new shop({
+            title: encrypt(title_hc),
+            bio: encrypt(bio_hc),
+            amount: amount_hc,
+            texture: encrypt(image_hc),
+            id: listingID,
+            purchases: [],
+            coupon: [],
+            hidden: true,
+            listingDate: Date.now(),
+            UpdateDate: Date.now(),
+            date: Date.now()
+        }).save();
+
+        res.json({ OK: true, status: 200, text: `Created new listing: ${listingID}` });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ OK: false, error: e });
     };
 });
 

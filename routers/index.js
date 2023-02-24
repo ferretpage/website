@@ -31,6 +31,7 @@ const faviconCache = require('./api/faviconCache');
 const authCode = require('./api/authCode');
 const Jimp = require('jimp');
 const receipt = require('../db/account/receipt');
+const shop = require('../db/account/shop');
 
 async function removeTOKENS() {
     await tokens.deleteMany({  });
@@ -145,7 +146,7 @@ a.get('/signout', async function (req, res) {
 
     let token = randomUUID();
 
-    await sessions.updateOne({ uuid: auth.uuid }, { $push: { sessions: [{ token, date: Date.now(), ip: req.headers['x-forwarded-for'], logout: true }] } });
+    await sessions.updateOne({ uuid: auth.uuid }, { $push: { sessions: [{ token, date: Date.now(), ip: encrypt(req.headers['x-forwarded-for']), logout: true }] } });
     await user.updateOne({ uuid: auth.uuid }, { $set: { session: token } });
 
     res.clearCookie('session');
@@ -287,9 +288,42 @@ a.get('/analytics', async function (req, res) {
 
     if (!acc) return res.redirect('/');
     if (acc.status == 403) return res.redirect('/');
+    if (!acc.verified) return res.redirect('/dashboard');
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
     res.render('account/analytics', { theme, acc, domain: `${req.protocol}://${req.hostname}` });
+});
+
+a.get('/my/shop', async function (req, res) {
+    let { session, theme, verified_session } = req.cookies;
+    let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
+
+    if (session) {
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&views=1`)).json();
+        if (auth && auth.status == 403) return res.redirect('/');
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
+    };
+
+    if (!acc) return res.redirect('/');
+    if (acc.status == 403) return res.redirect('/');
+    if (!acc.verified) return res.redirect('/dashboard');
+    if (acc.blocked) return res.redirect('/help/suspended-accounts');
+
+    let isAdmin = false;
+    let shopListing = null;
+    let u = await user.findOne({ session }, { views: 0, connectedUsers: 0 }).lean();
+    let SL = await shop.find({  }).lean();
+    if (u && !u.blocked && u.staff && verified_session && authCode[verified_session]) isAdmin = true;
+    if (SL && SL.length > 0) {
+        shopListing = [];
+        SL.forEach(elm => {
+            shopListing.push({ title: decrypt(elm.title), bio: decrypt(elm.bio), amount: elm.amount, texture: decrypt(elm.texture), id: elm.id, hidden: elm.hidden, listingDate: elm.listingDate, UpdateDate: elm.UpdateDate, date: elm.date })
+        });
+    };
+
+    res.render('shop/shop', { theme, acc, domain: `${req.protocol}://${req.hostname}`, staff: isAdmin, shopListing, error: null });
 });
 
 a.get('/my/purchases', async function (req, res) {
@@ -307,6 +341,7 @@ a.get('/my/purchases', async function (req, res) {
 
     if (!acc) return res.redirect('/');
     if (acc.status == 403) return res.redirect('/');
+    if (!acc.verified) return res.redirect('/dashboard');
     if (acc.blocked) return res.redirect('/help/suspended-accounts');
 
     let u = await user.findOne({ session }, { views: 0, connectedUsers: 0 }).lean();
@@ -352,6 +387,138 @@ a.get('/:uuid/purchases', async function (req, res) {
     if (gifts && gifts.length > 0) t = gifts;
 
     res.render('admin/purchases', { theme, acc, domain: `${req.protocol}://${req.hostname}`, u, p, t });
+});
+
+a.get('/purchase/confirm/:id', async function (req, res) {
+    let { session, theme } = req.cookies;
+    let acc = null;
+
+    if (domain(req.hostname)) return res.redirect('/');
+
+    if (session) {
+        let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}&views=1`)).json();
+        if (auth && auth.status == 403) return res.redirect('/');
+        if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
+    };
+
+    if (!acc) return res.redirect('/');
+    if (acc.status == 403) return res.redirect('/');
+    if (!acc.verified) return res.redirect('/dashboard');
+    if (acc.blocked) return res.redirect('/help/suspended-accounts');
+
+    let token = Math.random().toString(32).substring(5).toUpperCase();
+    let isAdmin = false;
+    let shopListing = null;
+    let u = await user.findOne({ session }, { views: 0, connectedUsers: 0 }).lean();
+    let SL = await shop.findOne({ id: req.params.id }).lean();
+    if (u && !u.blocked && u.staff) isAdmin = true;
+    let SL2 = await shop.find({  }).lean();
+    shopListing = [];
+    SL2.forEach(elm => {
+        shopListing.push({ title: decrypt(elm.title), bio: decrypt(elm.bio), amount: elm.amount, texture: decrypt(elm.texture), id: elm.id, hidden: elm.hidden, listingDate: elm.listingDate, UpdateDate: elm.UpdateDate, date: elm.date })
+    });
+
+    if (!SL) return res.render('shop/shop', { theme, acc, domain: `${req.protocol}://${req.hostname}`, staff: isAdmin, shopListing, error: `Unable to locate Listing` });
+    if (parseInt(u.credit) < parseInt(SL.amount)) return res.render('shop/shop', { theme, acc, domain: `${req.protocol}://${req.hostname}`, staff: isAdmin, shopListing, error: `Insufficient Funds` });
+
+    let yr = new Date().setFullYear(new Date().getFullYear()+1);
+    let uuidv4 = randomUUID();
+    if (SL.years && !isNaN(SL.years) && SL.years > 0 && SL.years < 251) yr = new Date().setFullYear(new Date().getFullYear()+parseInt(SL.years));
+
+    if (SL.id == 'e9caa03c8ebb43ad836f620293fa605b') {
+        let hasPurchase = false;
+        SL.purchases.forEach(elm => {
+            if (elm.user.toString() == u._id.toString()) hasPurchase = true;
+        });
+
+        if (hasPurchase) return res.render('shop/shop', { theme, acc, domain: `${req.protocol}://${req.hostname}`, staff: isAdmin, shopListing, error: `You already have this product` });
+
+        token = `${token}-redeem_paw`;
+
+        await shop.updateOne({ id: req.params.id }, { $push: { purchases: [{ user: u._id, uuid: uuidv4, date: Date.now() }] } });
+        await user.updateOne({ session }, { $set: { credit: parseInt(u.credit)-parseInt(SL.amount) } });
+        await badge.updateOne({ badge: token.split('-')[1] }, { $push: { users: { user: u._id, disabled: true, date: Date.now() } } });
+        new receipt({
+            user: u._id,
+            receipt: token,
+            pro: false,
+            pro_plus: false,
+            subdomain: false,
+            customdomain: false,
+            badge: true,
+            credit: false,
+            gift: false,
+            admin_gift: true,
+            gift_from: null,
+            amount: SL.amount,
+            valid_until: yr,
+            valid: true,
+            uuid: uuidv4,
+            date: Date.now()
+        }).save();
+    };
+
+    if (SL.id == '36c440e1e88944128a209730ec8edb4f') {
+        let hasPurchase = false;
+        SL.purchases.forEach(elm => {
+            if (elm.user.toString() == u._id.toString() && new Date(elm.date).valueOf()+3.154e+10 > Date.now()) hasPurchase = true;
+        });
+
+        if (hasPurchase) return res.render('shop/shop', { theme, acc, domain: `${req.protocol}://${req.hostname}`, staff: isAdmin, shopListing, error: `You already have this product` });
+
+        await shop.updateOne({ id: req.params.id }, { $push: { purchases: [{ user: u._id, uuid: uuidv4, date: Date.now() }] } });
+        await user.updateOne({ session }, { $set: { credit: parseInt(u.credit)-parseInt(SL.amount) } });
+        new receipt({
+            user: u._id,
+            receipt: token,
+            pro: true,
+            pro_plus: false,
+            subdomain: false,
+            customdomain: false,
+            badge: false,
+            credit: false,
+            gift: false,
+            admin_gift: true,
+            gift_from: null,
+            amount: SL.amount,
+            valid_until: yr,
+            valid: true,
+            uuid: uuidv4,
+            date: Date.now()
+        }).save();
+    };
+
+    if (SL.id == '13ef5d57303a46bb8ed5453baa0238a8') {
+        let hasPurchase = false;
+        SL.purchases.forEach(elm => {
+            if (elm.user.toString() == u._id.toString() && new Date(elm.date).valueOf()+3.154e+10 > Date.now()) hasPurchase = true;
+        });
+
+        if (hasPurchase) return res.render('shop/shop', { theme, acc, domain: `${req.protocol}://${req.hostname}`, staff: isAdmin, shopListing, error: `You already have this product` });
+
+        await shop.updateOne({ id: req.params.id }, { $push: { purchases: [{ user: u._id, uuid: uuidv4, date: Date.now() }] } });
+        await user.updateOne({ session }, { $set: { credit: parseInt(u.credit)-parseInt(SL.amount) } });
+        new receipt({
+            user: u._id,
+            receipt: token,
+            pro: false,
+            pro_plus: false,
+            subdomain: true,
+            customdomain: false,
+            badge: false,
+            credit: false,
+            gift: false,
+            admin_gift: true,
+            gift_from: null,
+            amount: SL.amount,
+            valid_until: yr,
+            valid: true,
+            uuid: uuidv4,
+            date: Date.now()
+        }).save();
+    };
+
+    res.redirect('/my/purchases');
 });
 
 a.get('/admin/panel', async function (req, res) {
@@ -635,6 +802,65 @@ a.get('/favicon/:id', async function (req, res) {
     res.end(buffer, 'binary');
 });
 
+a.get('/shop/:id.:ext', async function (req, res) {
+    if (faviconCache[req.params.id]) {
+        let image = Buffer.from(faviconCache[req.params.id].split(',')[1], 'base64');
+        if (req.params.ext && req.params.ext !== faviconCache[req.params.id].split('data:')[1].split(';')[0].split('/')[1]) return res.sendStatus(404);
+        res.writeHead(200, {
+            'Content-Type': faviconCache[req.params.id].split('data:')[1].split(';')[0],
+            'Content-Length': image.length
+        });
+        return res.end(image);
+    };
+    let u = await shop.findOne({ id: req.params.id }).lean();
+    if (!u) return res.sendStatus(404);
+    if (u && u.blocked) return res.sendStatus(404);
+    if (u.texture == "") return res.sendStatus(404);
+
+    let icon = await (await fetch(decrypt(u.texture)));
+    if (icon.status == 404) icon = await (await fetch('https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://had.contact&size=128'));
+    let buffer = await icon.arrayBuffer();
+
+    if (req.params.ext && req.params.ext !== icon.headers.get('content-type').split('/')[1]) return res.sendStatus(404);
+
+    data = "data:" + icon.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
+    faviconCache[req.params.id] = data;
+
+    res.writeHead(200, {
+        'Content-Type': icon.headers.get('content-type'),
+        'Content-Length': icon.headers.get('content-length')
+    });
+    res.end(Buffer.from(buffer, 'base64'));
+});
+
+a.get('/shop/:id', async function (req, res) {
+    if (faviconCache[req.params.id]) {
+        let image = Buffer.from(faviconCache[req.params.id].split(',')[1], 'base64');
+        res.writeHead(200, {
+            'Content-Type': faviconCache[req.params.id].split('data:')[1].split(';')[0],
+            'Content-Length': image.length
+        });
+        return res.end(image);
+    };
+    let u = await shop.findOne({ id: req.params.id }).lean();
+    if (!u) return res.sendStatus(404);
+    if (u && u.blocked) return res.sendStatus(404);
+    if (u.texture == "") return res.sendStatus(404);
+
+    let icon = await (await fetch(decrypt(u.texture)));
+    if (icon.status == 404) icon = await (await fetch('https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://had.contact&size=128'));
+    let buffer = await icon.arrayBuffer();
+
+    data = "data:" + icon.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
+    faviconCache[req.params.id] = data;
+
+    res.writeHead(200, {
+        'Content-Type': icon.headers.get('content-type'),
+        'Content-Length': icon.headers.get('content-length')
+    });
+    res.end(Buffer.from(buffer, 'base64'));
+});
+
 a.get('/badge/:uid', async function (req, res) {
     badge.findOne({ "users.user": req.params.uid, "users.disabled": false }, async function (e, r) {
         if (!r) return res.sendStatus(404);
@@ -670,6 +896,7 @@ a.get('/:user', async function (req, res) {
         if (auth && auth.status == 200) acc = JSON.parse(decrypt(auth.account));
     };
     if (acc && acc.blocked) return res.redirect('/help/suspended-accounts');
+    let accID = null;
     let v = await user.findOne({ nameToFind: req.params.user.toUpperCase(), hidden: false }).lean();
 
     if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
@@ -682,14 +909,10 @@ a.get('/:user', async function (req, res) {
     v.location = decrypt(v.location);
     v.fonts = decrypt(v.fonts);
     if (v.pro && v.theme == "dark") theme = "dark";
+    if (acc && !acc.blocked) accID = acc._id;
 
     if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };
-    if (acc && !acc.blocked) {
-        await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: acc._id, uuid: randomUUID(), date: Date.now() }] } });
-    };
-    if (!acc) {
-        await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: null, uuid: randomUUID(), date: Date.now() }] } });
-    };
+    await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: accID, uuid: randomUUID(), date: Date.now() }] } });
 
     if (!links) {
         links = await short_url.find({ author: v._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
@@ -697,7 +920,7 @@ a.get('/:user', async function (req, res) {
         if (links && links.length > 0) {
             links.forEach((elm) => { elm.link = decrypt(elm.link); elm.title = decrypt(elm.title); elm.subtitle = decrypt(elm.subtitle); elm.thumbnail = decrypt(elm.thumbnail) });
         }
-    }
+    };
 
     res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
 });
