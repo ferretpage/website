@@ -67,6 +67,8 @@ const user = mongo.Schema({
   hidden: Boolean,
   whitelist: Boolean,
   memorialize: Boolean,
+  showAvatarSquare: Boolean,
+  showCreationDate: Boolean,
   reason: String,
   nameToFind: String,
   createdIP: String,

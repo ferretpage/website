@@ -99,6 +99,7 @@ async function auth(session, staff) {
     return { OK: contine, error };
 };
 // console.log(twemoji.convert.toCodePoint(""));
+GetBucket();
 
 a.get('/v1/auth', async function (req, res) {
     let { session } = req.cookies;
@@ -184,8 +185,8 @@ a.get('/v1/account', async function (req, res) {
 
     if (!name && !uuid) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
     let s;
-    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0, credit: 0 }).lean();
-    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0, credit: 0 }).lean();
+    if (name) s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0, credit: 0, showCreationDate: 0, showAvatarSquare: 0 }).lean();
+    if (uuid) s = await user.findOne({ uuid }, { password: 0, createdIP: 0, __v: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, nameHistory: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0, blocked: 0, hidden: 0, signin_id: 0, pfp_id: 0, banner_id: 0, createdAt: 0, location: 0, url: 0, credit: 0, showCreationDate: 0, showAvatarSquare: 0 }).lean();
 
     if (!s) return res.status(403).json({ OK: false, status: 403, error: `Invalid username or UUID` });
 
@@ -637,7 +638,7 @@ a.post('/v1/reset-password/conf', async function (req, res) {
 
 a.post('/v1/account/edit', async function (req, res) {
     let { session } = req.cookies;
-    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, darktheme_vr, border_vr } = req.body;
+    let { display_vr, name_vr, bio_vr, location_vr, pronouns_vr, border_vr } = req.body;
 
     let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
     if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
@@ -646,7 +647,6 @@ a.post('/v1/account/edit', async function (req, res) {
 
     let acc = await user.findOne({ session }).lean();
     let char = /^[a-zA-Z0-9_]+$/;
-    let darktheme = "";
 
     if (!display_vr) {
         await user.updateOne({ session }, { $set: { displayName: acc.name } });
@@ -719,8 +719,7 @@ a.post('/v1/account/edit', async function (req, res) {
     if (location_vr.length < 1) {
         location_vr = "";
     }
-    if (acc.pro && darktheme_vr == "on") darktheme = "dark";
-    await user.updateOne({ session }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, theme: darktheme, personal_border: pBorder } });
+    await user.updateOne({ session }, { $set: { location: encrypt(location_vr), bio: encrypt(bio_vr), pronouns: pronoun, personal_border: pBorder } });
 
     res.json({ OK: true, status: 200, status: `Updated profile` });
 });
@@ -792,6 +791,27 @@ a.post('/v1/account/edit_badge', async function (req, res) {
     await badge.updateMany({ "users.user": acc._id }, { $set: { "users.$.disabled": true } });
     if (data) await badge.updateOne({ "users.user": acc._id, id: b.id }, { $set: { "users.$": { user: data.user, disabled: false, date: data.date } } });
     res.json({ OK: true, status: 200, status: `Updated badge` });
+});
+
+a.post('/v1/account/edit_appearance', async function (req, res) {
+    let { session } = req.cookies;
+    let { darktheme_vr, creation_vr, square_vr } = req.body;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, false);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+
+    let darktheme = "";
+    let creationDate = false;
+    let square = false;
+    let acc = await user.findOne({ session }).lean();
+    if (acc.blocked) return res.status(403).json({ OK: false, status: 403, error: `Account is blocked` });
+
+    if (acc.pro && darktheme_vr == "on") darktheme = "dark";
+    if (acc.pro && creation_vr == "on") creationDate = true;
+    if (acc.pro && square_vr) square = true;
+
+    await user.updateOne({ session }, { $set: { theme: darktheme, showCreationDate: creationDate, showAvatarSquare: square } });
+    res.json({ OK: true, status: 200, status: `Updated appearance` });
 });
 
 a.post('/v1/account/edit/avatar', async function (req, res) {
@@ -1168,7 +1188,8 @@ a.post('/v1/edit_url/:uuid/icon', async function (req, res) {
                     return res.json({ OK: true, status: 200, text: `Updated icon` });
                 }
 
-                if (file && file.mimetype !== "image/gif") {
+                if (file && !file.mimetype.includes('gif')) {
+                    console.log(file.mimetype);
                     await sharp(file.buffer).resize({ width: 128, height: 128 }).toBuffer().then(data => {
                         if (data) file.buffer = data; file.size = data.length;
                     });

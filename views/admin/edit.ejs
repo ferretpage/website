@@ -11,7 +11,7 @@
       <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white"><%=view.name%>'s dashboard: </h1>
       <div class="w-[85%] lg:w-1/2 m-auto break-words p-2 text-lg"><% if (view.pro) {%>
           <div class="m-auto" data-bs-toggle="modal" data-bs-target="#changeBANNER"><img src="/banner/<%= view.uuid %>" class="m-auto rounded object-fill lg:w-[400px] h-[140px] text-center" draggable="false" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change banner" alt="Click to change banner"></div><%}%>
-          <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= view.uuid %>" class="w-[128px] h-[128px] rounded-full border-[2px] border-black mb-4 <% if (view.banner !== '') {%> -mt-[85px]<%}%>" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
+          <div class="w-fit m-auto rounded-full hover:cursor-pointer dark:text-white" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Click to change avatar"><img src="/avatar/<%= view.uuid %>" class="w-[128px] h-[128px] <% if (!view.showAvatarSquare) {%>rounded-full<%} else {%>rounded-md<%}%> border-[2px] border-black mb-4 <% if (view.banner !== '') {%> -mt-[85px]<%}%>" draggable="false" data-bs-toggle="modal" data-bs-target="#changePFP"></div>
           <hr class="w-1/2 m-auto dark:text-white dark:p-[1px]"/>
           <div class="hidden" role="alert" id="error"></div>
           <div class="w-fit m-auto p-1 font-bold">

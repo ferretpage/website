@@ -756,9 +756,17 @@ a.get('/favicon/:id.:ext', async function (req, res) {
 
     let icon = await (await fetch(decrypt(u.thumbnail)));
     if (icon.status == 404) icon = await (await fetch('https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://had.contact&size=128'));
-    let image = await Jimp.read(icon.url);
-    image.resize(128, 128, Jimp.RESIZE_NEAREST_NEIGHBOR);
-    let buffer = await image.getBufferAsync(icon.headers.get('content-type'));
+    let image;
+    let buffer;
+    if (!icon.headers.get('content-type').includes('gif')) {
+        image = await Jimp.read(icon.url);
+        image.resize(128, 128, Jimp.RESIZE_NEAREST_NEIGHBOR);
+        buffer = await image.getBufferAsync(icon.headers.get('content-type'));
+    };
+    if (icon.headers.get('content-type').includes('gif')) {
+        image = await (await fetch(icon.url));
+        buffer = await image.arrayBuffer();
+    };
 
     if (req.params.ext && req.params.ext !== icon.headers.get('content-type').split('/')[1]) return res.sendStatus(404)
 
@@ -788,9 +796,17 @@ a.get('/favicon/:id', async function (req, res) {
 
     let icon = await (await fetch(decrypt(u.thumbnail)));
     if (icon.status == 404) icon = await (await fetch('https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://had.contact&size=128'));
-    let image = await Jimp.read(icon.url);
-    image.resize(128, 128, Jimp.RESIZE_NEAREST_NEIGHBOR);
-    let buffer = await image.getBufferAsync(icon.headers.get('content-type'));
+    let image;
+    let buffer;
+    if (!icon.headers.get('content-type').includes('gif')) {
+        image = await Jimp.read(icon.url);
+        image.resize(128, 128, Jimp.RESIZE_NEAREST_NEIGHBOR);
+        buffer = await image.getBufferAsync(icon.headers.get('content-type'));
+    };
+    if (icon.headers.get('content-type').includes('gif')) {
+        image = await (await fetch(icon.url));
+        buffer = await image.arrayBuffer();
+    };
 
     data = "data:" + icon.headers.get('content-type') + ";base64," + Buffer.from(buffer).toString('base64');
     faviconCache[req.params.id] = data;
@@ -799,6 +815,7 @@ a.get('/favicon/:id', async function (req, res) {
         'Content-Type': icon.headers.get('content-type'),
         'Content-Length': icon.headers.get('content-length')
     });
+    if (icon.headers.get('content-type').includes('gif')) return res.end(Buffer.from(buffer, 'base64'));
     res.end(buffer, 'binary');
 });
 
@@ -955,9 +972,6 @@ a.get('/:uuid/edit', async function (req, res) {
     v.location = decrypt(v.location);
 
     if (badges) badges = { badge: badges.badge, text: badges.text, info: badges.info, url: `/api/badge/${v.uuid}` };
-    if (acc && !acc.blocked) {
-        await user.updateOne({ uuid: v.uuid }, { $push: { views: [{ user: acc._id, uuid: randomUUID(), date: Date.now() }] } });
-    }
 
     if (!links) {
         links = await short_url.find({ author: v._id, blocked: false }).populate([{ path:"author.user", select: {displayName: 1, name: 1, email: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
