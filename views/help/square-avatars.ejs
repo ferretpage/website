@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="<%= theme %>" lang="en" id="html">
+<head>
+    <link rel="icon" href="/public/favicon.ico">
+    <link rel="icon" rel="apple-touch-icon" href="/public/favicon.ico">
+    <%- include('../meta/index', { title: 'Help - Square Avatars' }); %>
+</head>
+<body class="bg-meowmail-main dark:bg-ayyblue-black">
+    <%- include('../meta/nav'); %>
+    <h1 class="font-bold text-4xl text-center my-2 mx-2 dark:text-white">Square Avatars</h1>
+    <div>
+        <div class="w-fit m-auto p-3 break-words dark:text-white">
+            <img class="rounded mb-4 w-fit m-auto" src="/public/i/assets/square_avatar-help.png" draggable="false">
+            <h2 class="font-bold text-2xl mb-2 text-center">What is this?</h2>
+            <h4 class="text-center">Having a square avatar indicates that the user is an organization or a notable user.</h4>
+            <h4 class="text-center mt-4">Please note that not all <a class="alert-link hover:underline" href="/help/verified-accounts">verified</a> users will have a square avatar.</h4>
+            <hr class="w-1/2 m-auto mt-2 mb-2" style="border: solid .5px;">
+        </div>
+    </div><br>
+</body>
+<script defer>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+</html>

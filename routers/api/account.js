@@ -145,8 +145,8 @@ a.get('/v1/auth', async function (req, res) {
             };
             if (!s.pro || !s.subdomain) {
                 if (new Date() < elm.valid_until) {
-                    if (elm.pro) { await user.updateOne({ uuid: s.uuid }, { $set: { pro: true, linklimit: "50", theme: "dark" } }) };
-                    if (elm.subdomain) { await user.updateOne({ uuid: s.uuid }, { $set: { subdomain: true } }) };
+                    if (elm.pro && !s.pro) { await user.updateOne({ uuid: s.uuid }, { $set: { pro: true, linklimit: "50", theme: "dark" } }) };
+                    if (elm.subdomain && !s.subdomain) { await user.updateOne({ uuid: s.uuid }, { $set: { subdomain: true } }) };
                 };
             };
             finalRec.push({ receipt: elm.receipt, amount: elm.amount, valid_until: elm.valid_until });

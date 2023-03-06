@@ -705,6 +705,10 @@ video {
   height: 64px;
 }
 
+.h-\[380px\] {
+  height: 380px;
+}
+
 .h-\[32px\] {
   height: 32px;
 }
@@ -769,6 +773,10 @@ video {
 
 .w-\[64px\] {
   width: 64px;
+}
+
+.w-\[650px\] {
+  width: 650px;
 }
 
 .w-2\/4 {
@@ -897,6 +905,11 @@ video {
 .bg-slate-300 {
   --tw-bg-opacity: 1;
   background-color: rgb(203 213 225 / var(--tw-bg-opacity));
+}
+
+.object-contain {
+  -o-object-fit: contain;
+     object-fit: contain;
 }
 
 .object-cover {
