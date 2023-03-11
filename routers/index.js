@@ -44,11 +44,65 @@ function domain(d) {
     return ret;
 };
 
+function time_ago(time) {
+    switch (typeof time) {
+      case 'number':
+        break;
+      case 'string':
+        time = +new Date(time);
+        break;
+      case 'object':
+        if (time.constructor === Date) time = time.getTime();
+        break;
+      default:
+        time = +new Date();
+    }
+    var time_formats = [
+        [60, 'seconds', 1], // 60
+        [120, '1 minute ago', '1 minute from now'], // 60*2
+        [3600, 'minutes', 60], // 60*60, 60
+        [7200, '1 hour ago', '1 hour from now'], // 60*60*2
+        [86400, 'hours', 3600], // 60*60*24, 60*60
+        [172800, 'Yesterday', 'Tomorrow'], // 60*60*24*2
+        [604800, 'days', 86400], // 60*60*24*7, 60*60*24
+        [1209600, 'Last week', 'Next week'], // 60*60*24*7*4*2
+        [2419200, 'weeks', 604800], // 60*60*24*7*4, 60*60*24*7
+        [4838400, 'Last month', 'Next month'], // 60*60*24*7*4*2
+        [29030400, 'months', 2419200], // 60*60*24*7*4*12, 60*60*24*7*4
+        [58060800, 'Last year', 'Next year'], // 60*60*24*7*4*12*2
+        [2903040000, 'years', 29030400], // 60*60*24*7*4*12*100, 60*60*24*7*4*12
+        [5806080000, 'Last century', 'Next century'], // 60*60*24*7*4*12*100*2
+        [58060800000, 'centuries', 2903040000] // 60*60*24*7*4*12*100*20, 60*60*24*7*4*12*100
+    ];
+    var seconds = (+new Date() - time) / 1000,
+        token = 'ago',
+        list_choice = 1;
+    if (seconds == 0) {
+        return 'Just now'
+    }
+    if (seconds < 0) {
+        seconds = Math.abs(seconds);
+        token = 'from now';
+        list_choice = 2;
+    }
+    var i = 0,
+        format;
+    while (format = time_formats[i++])
+        if (seconds < format[0]) {
+          if (typeof format[2] == 'string')
+            return format[list_choice];
+          else
+            return Math.floor(seconds / format[2]) + ' ' + format[1] + ' ' + token;
+        }
+    return time;
+};
+
 removeTOKENS();
 
 a.get('/', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
+    var aDay = 0;
 
     if (session) {
         let auth = await (await fetch(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`)).json();
@@ -61,8 +115,8 @@ a.get('/', async function (req, res) {
 
         let v = await user.findOne({ nameToFind: host.toUpperCase(), hidden: false }).lean();
 
-        if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
-        if (v.hidden || v.blocked || !v.subdomain) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
+        if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}`, last_active: null });
+        if (v.hidden || v.blocked || !v.subdomain) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}`, last_active: null });
         let badges = await badge.findOne({ "users.user": v._id, "users.disabled": false }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 
         v.apiKey = decrypt(v.apiKey);
@@ -88,7 +142,7 @@ a.get('/', async function (req, res) {
             }
         }
 
-        return res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
+        return res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}`, last_active: time_ago(new Date(v.last_login - aDay)) });
     };
 
     let shortURL = await short_url.find({ }, { uuid: 1 }).lean();
@@ -195,6 +249,7 @@ a.get('/dashboard', async function (req, res) {
     let { session, theme } = req.cookies;
     let acc = null;
     let links = null;
+    let aDay = 0;
     let code = null;
 
     if (domain(req.hostname)) return res.redirect('/');
@@ -217,6 +272,9 @@ a.get('/dashboard', async function (req, res) {
     let bdF = [];
     let bdA;
     let bd = await badge.find({ "users.user": acc._id }).lean();
+    let login = await user.findOne({ uuid: acc.uuid }, { last_login: 1, uuid: 1 }).lean();
+    if (!login) login = null;
+    login = time_ago(new Date(login.last_login - aDay));
 
     if (bd) {
         for (let i = 0; i < bd.length; i++) {
@@ -231,7 +289,7 @@ a.get('/dashboard', async function (req, res) {
         let qr = null;
         if (url) qr = url;
 
-        res.render('account/dashboard', { theme, acc, links, qr, code, domain: `${req.protocol}://${req.hostname}`, badge: bdF, activeBadge: bdA });
+        res.render('account/dashboard', { theme, acc, links, qr, code, domain: `${req.protocol}://${req.hostname}`, badge: bdF, activeBadge: bdA, last_active: login });
     });
 });
 
@@ -903,6 +961,7 @@ a.get('/:user', async function (req, res) {
     let { session } = req.cookies;
     let acc = null;
     let links = null;
+    var aDay = 0;
     let theme = "";
 
     if (domain(req.hostname)) return res.redirect('/');
@@ -916,8 +975,8 @@ a.get('/:user', async function (req, res) {
     let accID = null;
     let v = await user.findOne({ nameToFind: req.params.user.toUpperCase(), hidden: false }).lean();
 
-    if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
-    if (v.hidden || v.blocked) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}` });
+    if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}`, last_active: null });
+    if (v.hidden || v.blocked) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, domain: `${req.protocol}://${req.hostname}`, last_active: null });
     let badges = await badge.findOne({ "users.user": v._id, "users.disabled": false }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 
     v.apiKey = decrypt(v.apiKey);
@@ -939,13 +998,14 @@ a.get('/:user', async function (req, res) {
         }
     };
 
-    res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
+    res.render('account/profile', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}`, last_active: time_ago(new Date(v.last_login - aDay)) });
 });
 
 a.get('/:uuid/edit', async function (req, res) {
     let { session, verified_session } = req.cookies;
     let acc = null;
     let links = null;
+    var aDay = 0
     let theme = "";
 
     if (domain(req.hostname)) return res.redirect('/');
@@ -963,7 +1023,7 @@ a.get('/:uuid/edit', async function (req, res) {
     if (acc && !acc.staff) return res.redirect('/');
     let v = await user.findOne({ uuid: req.params.uuid }).populate([{ path:"connectedUser.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 
-    if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc });
+    if (!v) return res.render('error', { errorMessage: `Could not find page.`, theme: theme, acc, last_active: null });
     let badges = await badge.findOne({ "users.user": v._id, "users.disabled": false }).populate([{ path:"users.user", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, vrverified: 1, hidden: 1} }]).lean();
 
     v.apiKey = decrypt(v.apiKey);
@@ -981,7 +1041,7 @@ a.get('/:uuid/edit', async function (req, res) {
         }
     }
 
-    res.render('admin/edit', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}` });
+    res.render('admin/edit', { theme: theme, acc, view: v, badge: badges, links, domain: `${req.protocol}://${req.hostname}`, last_active: time_ago(new Date(v.last_login - aDay)) });
 });
 
 module.exports = a;

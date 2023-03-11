@@ -236,6 +236,7 @@ a.get('/v1/personal_border', async function (req, res) {
 
 a.get('/v1/inactive/:name', async function (req, res) {
     let { name } = req.params;
+    var aDay = 24 * 60 * 60 * 1000;
 
     if (!name) return res.status(404).json({ OK: false, status: 404, error: `Invalid username` });
     let s = await user.findOne({ nameToFind: name.toUpperCase() }, { password: 0, createdIP: 0, __v: 0, _id: 0, recEmail: 0, session: 0, apiKey: 0, google_backup: 0, TFA: 0, email: 0, connectedUser: 0, staff: 0, socials: 0, links: 0, verified: 0, vrverified: 0, ogname: 0, linklimit: 0, pfp: 0, banner: 0, views: 0 }).lean();
@@ -1051,6 +1052,7 @@ a.post('/v1/create_url', async function (req, res) {
         limitClick: isLimitNum,
         clicks: [],
         highlight,
+        verified: false,
         hidden: false,
         blocked: false,
         warn: WA,
@@ -2301,6 +2303,26 @@ a.post('/admin/edit_url/:uuid/icon', async function (req, res) {
         console.log(e);
         res.status(500).json({ OK: false, error: e });
     };
+});
+
+a.get('/admin/verify_url/:uuid', async function (req, res) {
+    let { session } = req.cookies;
+
+    let check = await auth(`${req.protocol}://${req.hostname}/api/v1/auth?session=${session}`, true);
+    if (!check.OK) return res.status(403).json({ OK: false, status: 403, error: check.error });
+    
+    let u = await user.findOne({ uuid: req.params.uuid }).lean();
+    if (!u) return res.status(404).json({ OK: false, status: 404, error: `User not found` });
+    let urls = await short_url.findOne({ author: u._id, uuid: req.query.uuid }).populate([{ path:"author", select: {displayName: 1, name: 1, pfp: 1, uuid: 1, hcverified: 1, hidden: 1} }]).lean();
+    if (!urls) return res.status(404).json({ OK: false, status: 404, error: `Could not find URL` });
+
+    if (urls.verified) {
+        await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { verified: false } });
+        return res.redirect(`/${u.uuid}/edit`);
+    };
+
+    await short_url.updateOne({ uuid: urls.uuid, blocked: false }, { $set: { verified: true } });
+    res.redirect(`/${u.uuid}/edit`);
 });
 
 a.get('/admin/upgrade_plan/:name', async function (req, res) {
